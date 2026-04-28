@@ -1,0 +1,974 @@
+% !TeX program = XeLaTeX
+\documentclass[12pt, a4paper]{ctexart}
+
+% 宏包加载
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+\usepackage[hidelinks]{hyperref}
+\usepackage{bookmark}
+\hypersetup{
+    colorlinks=false,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=black
+}
+\usepackage{zhnumber}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{threeparttable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{tocloft}      % 重要用于自定义图表清单格式
+\usepackage{iftex}
+\usepackage{xeCJKfntef}
+% 配置代码高亮样式 (针对附录的Python/Stata代码)
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single
+}
+
+
+\ifPDFTeX
+  \errmessage{This template must be compiled with XeLaTeX or LuaLaTeX, not pdfLaTeX}
+\fi
+
+\makeatletter
+\def\@afterheading{\@nobreakfalse\everypar{}}
+\def\@lbibitem[#1]#2{%
+  \item
+  \if@filesw
+    {\let\protect\noexpand
+     \immediate\write\@auxout{\string\bibcite{#2}{\the\value{\@listctr}}}}%
+  \fi
+  \ignorespaces}
+\makeatother
+
+% ==================== 页面设置 ====================
+\geometry{top=2.54cm, bottom=2.54cm, left=3.17cm, right=3.17cm}
+
+% ==================== 标题序号 ====================
+% ==================== 层次序号定义（一、；（一）；1.；（1））====================
+
+\DeclareMathOperator{\median}{median}
+\newif\ifanonymized
+% 匿名版导出时改为 \anonymizedtrue
+\anonymizedfalse
+\newcommand{\papertitle}{新质生产力赋能区域协调：人工智能产业集聚与创新支撑环境研究}
+\newcommand{\paperxiaobiaosong}{\songti}
+\newcommand{\paperfangsong}{\fangsong}
+\IfFontExistsTF{方正小标宋简体}
+  {\renewcommand{\paperxiaobiaosong}{\CJKfontspec{方正小标宋简体}}}
+  {}
+\IfFontExistsTF{仿宋_GB2312}
+  {\renewcommand{\paperfangsong}{\CJKfontspec{仿宋_GB2312}}}
+  {}
+\newcommand{\one}{（1）}
+\newcommand{\two}{（2）}
+\newcommand{\three}{（3）}
+\newcommand{\four}{（4）}
+\newcommand{\five}{（5）}
+\newcommand{\circlednum}[1]{%
+    \mbox{\ifcase#1\or ①\or ②\or ③\or ④\or ⑤\or ⑥\or ⑦\or ⑧\or ⑨\or ⑩\else #1\fi}%
+}
+
+\ctexset{
+    section = {
+        name = {,、},
+        number = \chinese{section},
+        format = \raggedright\heiti\mdseries\zihao{-3},
+        beforeskip = 0pt,
+        afterskip = 0pt,
+        aftername = \hspace{0pt},
+    },
+    subsection = {
+        name = {（,）},
+        number = \chinese{subsection},
+        format = \raggedright\kaishu\zihao{4},
+        beforeskip = 0pt,
+        afterskip = 0pt,
+        aftername = \hspace{0pt},
+    },
+    subsubsection = {
+        name = {,.},
+        number = \arabic{subsubsection},
+        format = \raggedright\heiti\zihao{-4},
+        beforeskip = 0pt,
+        afterskip = 0pt,
+        aftername = \hspace{0pt},
+    },
+}
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{2}
+\titleformat{\paragraph}[hang]{\raggedright\songti\zihao{-4}}{\theparagraph}{0.5em}{}
+\titlespacing*{\paragraph}{0pt}{0pt}{0pt}
+\renewcommand{\theparagraph}{（\arabic{paragraph}）}
+\setlist[enumerate]{label=（\arabic*）,leftmargin=2em,itemsep=0pt,topsep=0pt,parsep=0pt,partopsep=0pt}
+
+% ==================== 正文字体与行距 ====================
+\newcommand{\bodyformat}{\songti\fontsize{12bp}{24bp}\selectfont}
+\newcommand{\tablebodyformat}{\zihao{5}\setlength{\tabcolsep}{5pt}\renewcommand{\arraystretch}{1.2}}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\emergencystretch=2em
+\setlength{\textfloatsep}{12pt}
+\setlength{\floatsep}{10pt}
+\setlength{\intextsep}{10pt}
+\renewcommand{\contentsname}{\heiti\zihao{4}目\quad 录}
+\renewcommand{\listtablename}{\heiti\zihao{4}表格清单}
+\renewcommand{\listfigurename}{\heiti\zihao{4}插图清单}
+\renewcommand{\refname}{\heiti\zihao{4}参考文献}
+\renewcommand{\cfttoctitlefont}{\hfill}
+\renewcommand{\cftaftertoctitle}{\hfill}
+\renewcommand{\cftlottitlefont}{\hfill}
+\renewcommand{\cftafterlottitle}{\hfill}
+\renewcommand{\cftloftitlefont}{\hfill}
+\renewcommand{\cftafterloftitle}{\hfill}
+\renewcommand{\cftsecfont}{\songti\zihao{-4}}
+\renewcommand{\cftsubsecfont}{\songti\zihao{-4}}
+\renewcommand{\cftsubsubsecfont}{\songti\zihao{-4}}
+\renewcommand{\cftsecpagefont}{\songti\zihao{-4}}
+\renewcommand{\cftsubsecpagefont}{\songti\zihao{-4}}
+\renewcommand{\cftsubsubsecpagefont}{\songti\zihao{-4}}
+\setlength{\cftbeforesecskip}{0pt}
+\setlength{\cftbeforesubsecskip}{0pt}
+\setlength{\cftbeforesubsubsecskip}{0pt}
+\DeclareCaptionLabelSeparator{twospace}{\quad\quad}
+\captionsetup{
+    font=normalsize,
+    labelfont=normalfont,
+    textfont=normalfont,
+    labelsep=twospace,
+    skip=4pt,
+    justification=centering,
+    singlelinecheck=false
+}
+
+
+% ==================== 自定义表格与插图清单格式 ====================
+% 设置表格清单条目格式：表1 + 空格 + 标题
+\renewcommand{\cfttabpresnum}{表}
+\renewcommand{\cfttabaftersnum}{}
+\setlength{\cfttabnumwidth}{3em}
+
+% 设置插图清单条目格式：图1 + 空格 + 标题
+\renewcommand{\cftfigpresnum}{图}
+\renewcommand{\cftfigaftersnum}{}
+\setlength{\cftfignumwidth}{3em}
+
+% 设置清单字体（宋体小四号）
+\renewcommand{\cfttabfont}{\zihao{-4}\normalfont}
+\renewcommand{\cftfigfont}{\zihao{-4}\normalfont}
+
+% ==================== 正文开始 ====================
+\begin{document}
+\bodyformat
+
+% ==================== 封面（无页码） ====================
+\ifanonymized
+\else
+\thispagestyle{empty}
+
+% 左上角作品编号
+{\zihao{3}\heiti 作品编号：TJJM202600000C}
+
+\vspace*{1cm}
+
+% 大赛名称（居中）
+\begin{center}
+    {\zihao{2}\paperxiaobiaosong 2026年（第十二届）全国大学生统计建模大赛}
+\end{center}
+
+\vspace{2.5cm}
+
+% 参赛作品（居中）
+\begin{center}
+    {\zihao{1}\paperxiaobiaosong 参赛作品}
+\end{center}
+
+\vspace{3cm}
+
+% 信息表格（等长下划线）
+\renewcommand{\arraystretch}{2.5}
+
+\begin{center}
+    \begin{tabular}{@{}p{3.2cm}@{}p{10.8cm}@{}}
+        \zihao{3}\paperxiaobiaosong 参赛学校： & \zihao{2}\paperfangsong \underline{\makebox[10.2cm][l]{广东工业大学}} \\[0.3cm]
+        \zihao{3}\paperxiaobiaosong 论文题目： & \zihao{2}\paperfangsong \underline{\makebox[10.2cm][l]{\papertitle}} \\[0.3cm]
+        \zihao{3}\paperxiaobiaosong 参赛队员： & \zihao{2}\paperfangsong \underline{\makebox[10.2cm][l]{张三\quad 李四\quad 王五}} \\[0.3cm]
+        \zihao{3}\paperxiaobiaosong 指导老师： & \zihao{2}\paperfangsong \underline{\makebox[10.2cm][l]{赵六}}
+    \end{tabular}
+\end{center}
+
+\vfill
+
+\newpage
+\fi
+\renewcommand{\arraystretch}{1.0}
+
+% ==================== 前置部分罗马页码 ====================
+\pagenumbering{Roman}
+\pagestyle{plain}
+
+% ==================== 目录 ====================
+\tableofcontents
+
+\newpage
+
+% ==================== 表格与插图清单（无页码） ====================
+\section*{表格和插图清单}
+\phantomsection
+\addcontentsline{toc}{section}{表格和插图清单}
+
+% 表格清单
+\listoftables
+
+\vspace{0.8cm}
+
+% 插图清单
+\listoffigures
+
+\newpage
+
+% ==================== 正文 ====================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\begin{center}
+    {\paperxiaobiaosong\zihao{3}\papertitle}
+\end{center}
+\section{绪论}
+
+\subsection{研究背景与国家战略需求}
+当前，我国正处于高质量发展和新旧动能转换并行推进的关键阶段，培育新质生产力、推动区域协调发展已成为国家战略的重要着力点。人工智能作为新一轮科技革命和产业变革的重要驱动力，正在深刻重塑产业组织方式、资源配置逻辑和区域发展格局。围绕数字经济、科技创新与“人工智能+”等方向，国家连续出台多项政策文件，强调以技术进步和产业升级带动区域高质量协同发展。
+
+广东省既是制造业大省和数字经济先行区，也是人工智能产业布局较早、应用场景较丰富的地区之一。但与此同时，珠三角与粤东、粤西、粤北在产业基础、创新资源和开放条件等方面仍存在明显差异，区域发展不均衡问题较为突出。基于此，本文以广东省地级市为研究对象，从人工智能产业集聚与创新支撑环境两个维度切入，考察新质生产力培育过程中的协同与错配特征，并分析其对省域内部区域协调发展的影响。
+
+\subsection{国内外研究现状综述与问题提出}
+
+\subsubsection{国内研究现状}
+国内关于人工智能产业集聚、创新支撑环境与区域差异演化的研究已形成一定基础。人工智能及相关产业空间效应方面，已有研究从“数字红利”与“数字鸿沟”视角讨论人工智能应用对城市群绿色创新的影响，表明AI发展具有明显的空间差异与溢出特征\cite{ref1}。也有研究从政策冲击与产业转移角度分析地区发展阶段与产业空间重组之间的关系\cite{ref2}。
+
+创新环境评价方面，已有文献构建了城市创新创业环境评价指标体系，为城市层面的支撑条件测度提供了方法借鉴\cite{ref3}。在区域差异与协调发展方面，也有研究分析广东省区域经济差异的方向及影响机制\cite{ref4}。另有文献从城市群动态演化和空间动能等视角讨论了区域分层与差异形成机制\cite{ref5,ref6}。
+
+\subsubsection{国外研究现状}
+国外针对高技术产业、智能产业集聚与区域经济发展的研究起步较早，形成了成熟的产业集聚与新经济地理理论体系。国外学者普遍认为，知识密集型、技术驱动型产业具备显著的空间集聚特征，产业集聚带来的知识溢出、要素共享与创新协同效应，能够显著改变区域经济发展效率，重塑区域发展差距。但现有国外研究均立足于西方国家产业布局与市场环境，适配成熟的市场经济体系，缺乏贴合我国新质生产力战略、省域内部市域协调发展的本土化研究，无法适配广东省制造业转型、区域发展失衡的特殊研究场景。
+
+\subsubsection{文献评述}
+综合梳理国内外现有研究成果可以发现，当前学术界已经单独完善了新质生产力内涵培育、区域协调发展影响因素、人工智能产业集聚等单一领域的研究体系，但现有研究仍存在明显短板与研究空白。第一，多数研究将新质生产力培育与区域协调发展视为独立研究主题，较少搭建二者的关联框架，缺乏实证探究新质生产力对区域均衡发展的赋能机制与现实效果；第二，现有实证研究多聚焦全国宏观层面，针对单一省份内部地级市尺度的微观实证研究较为匮乏，难以精准解释广东省特有的产业结构与区域失衡问题；第三，少有研究从协同与错配的双向视角，分析新质生产力核心载体（人工智能产业）与地方创新支撑环境的匹配关系，及其对区域协调发展的差异化影响，为本文研究留下充足的创新空间。
+
+\subsubsection{问题提出}
+基于现有研究缺口、国家战略需求与广东省现实发展现状，本文提出核心研究问题：在新质生产力培育的战略背景下，以人工智能产业集聚、区域创新支撑环境为代表的新型发展动能，对广东省市域区域协调发展存在怎样的影响？各地市新兴产业动能与创新资源是否存在协同或结构性错配，进一步加剧或缓解区域发展失衡？
+
+\subsection{研究目的及意义}
+\subsubsection{研究目的}
+本文以广东省21个地级市为研究样本，构建人工智能产业集聚测度模型和创新支撑环境评价体系，识别各地市在新质生产力培育中的协同与错配特征，并据此分析其对区域协调发展的影响机制，为广东省优化产业布局和创新资源配置提供参考。
+\subsubsection{理论意义}
+本文构建了“新质生产力培育—人工智能产业集聚—创新支撑环境—区域协调发展”的分析框架，拓展了区域协调发展影响因素的研究边界，也为新质生产力在城市尺度的量化研究提供了本土案例。
+\subsubsection{实践意义}
+本文有助于识别广东省不同城市在产业动能与创新支撑上的优势与短板，为人工智能产业空间布局优化、创新资源精准配置和区域协调政策制定提供实证依据。
+
+\subsection{本文研究内容与创新点}
+
+\subsubsection{主要研究内容}
+本文以广东省21个地级市为全域研究对象，并选取广州、深圳、珠海、佛山、东莞、中山、惠州、汕头8座重点城市作为核心样本，围绕人工智能产业集聚、创新支撑环境及其对区域协调发展的影响展开研究：
+
+{\heiti \one 构建广东省城市人工智能产业集聚测度指标}
+基于2020—2023年上市公司年报文本数据，构建城市—年份维度的人工智能产业集聚指标，刻画重点城市AI集聚水平及其变化趋势。
+
+{\heiti \two 构建并测算广东省 21 市创新支撑环境综合评价体系}
+从财政支持、金融发展、对外开放、消费水平和服务开放五个维度构建创新支撑环境评价体系，采用熵值法--TOPSIS进行测算，并以PCA进行稳健性检验。
+
+{\heiti \three 识别城市“AI集聚--创新支撑” 协同与错配结构}
+以AI集聚水平与创新支撑环境得分为双维度，结合四象限分层与K-means聚类辅助验证，识别重点城市的协同与错配结构。
+
+{\heiti \four 分析不同类型城市的区域协调发展表现差异}
+比较不同类型城市在发展水平、要素结构和增长动能上的差异，解释“产业—环境”匹配关系对区域协调发展的影响。
+
+{\heiti \five 开展辅助性统计检验并验证研究结论}
+通过描述性统计、相关性分析和辅助性回归，对核心变量关系进行支持性检验。
+
+\subsubsection{主要创新点}
+本文的创新主要体现在四个方面：一是将人工智能产业集聚与创新支撑环境纳入统一框架，从协同与错配双视角解释区域协调发展差异；二是采用“21市全域样本+8市重点样本”的双层设计，兼顾整体格局和重点城市识别；三是以年报文本挖掘构建城市层面的AI产业集聚指标，并结合“熵值--TOPSIS+PCA”开展综合评价与稳健性检验；四是从要素匹配角度解释区域差异，为差异化政策制定提供更直接的分析依据。
+
+
+
+\section{问题分析}
+
+\subsection{总体研究思路与技术框架}% 此处放整体技术路线图 / 框架图
+% 写：整体逻辑 + 步骤顺序 + 模块关系
+本文遵循 “问题提出——理论梳理——数据构建——实证测算——结构识别——差异分析——统计验证——结论建议” 的完整逻辑链条，具体思路如下：
+
+\subsubsection{问题提出与理论准备：}基于国家新质生产力与区域协调发展战略，结合广东现实背景，提出核心研究问题，并梳理相关理论与文献。
+
+\subsubsection{数据构建与预处理：}整合上市公司年报文本、官方统计数据，构建广东21市及8个重点样本城市的多维度面板数据，完成文本清洗、企业映射、口径统一、缺失值填补与样本匹配。
+
+\subsubsection{指标构建与测算：}分别构建人工智能产业集聚测度指标与创新支撑环境评价体系，完成全域及重点样本的量化测算与稳健性评价。
+
+\subsubsection{结构识别与差异分析：}通过四象限分层与聚类方法，识别城市匹配结构，分析不同类型城市的发展特征与区域协调表现差异。
+
+\subsubsection{统计检验与结论验证：}运用描述性统计、相关性分析与辅助回归模型，验证核心结论的稳健性。
+
+\subsubsection{结论提炼与政策建议：}归纳研究结论，针对不同类型城市提出差异化政策建议，并指出研究局限与展望。
+
+
+\subsection{方案可行性分析}
+\subsubsection{数据可行性}
+\begin{enumerate}
+    \item 数据来源公开且权威，能够覆盖研究所需的城市样本与时间维度。
+    \item 文本清洗、关键词识别、企业映射等处理方法较为成熟，能够支撑后续测度。
+    \item “全域样本+重点样本”的结构兼顾整体性与代表性。
+\end{enumerate}
+\subsubsection{方法可行性}
+\begin{enumerate}
+    \item 基于文本数据构建产业集聚指标的做法已在高技术产业研究中得到应用。
+    \item 熵值-TOPSIS、PCA、K-means、相关性分析与辅助回归均为较成熟的方法。
+    \item 从指标构建到统计检验形成了完整的方法链条。
+\end{enumerate}
+\subsubsection{逻辑和现实可行性}
+\begin{enumerate}
+    \item 研究主线完整，问题、数据、方法与结论之间衔接清晰。
+    \item 研究结论具有较强现实针对性，可服务于广东省区域政策优化。
+\end{enumerate}
+
+\section{数据来源、样本说明与预处理}
+
+\subsection{数据来源}
+
+\subsubsection{人工智能产业集聚测度数据来源}
+人工智能产业集聚测度使用上市公司年度报告等公开披露文本数据。本文以年报中的人工智能关键词、业务表述和技术布局信息为识别基础，在企业层面完成活跃度识别后汇总至城市—年份层面，形成广州、深圳、佛山、中山、珠海、东莞、惠州和汕头8个样本城市2020—2023年的27个观测值。
+
+\subsubsection{创新支撑环境评价数据来源}
+创新支撑环境评价所使用的数据来自广东省及各地级市统计年鉴、统计公报等官方资料。本文围绕财政、金融、开放、消费和服务结构等维度整理广东省21个地级市2022—2023年的城市统计数据，共形成42个城市—年份观测值，并据此构造财政强度、金融深度、开放强度、人均消费和服务开放代理等指标。
+
+\subsubsection{辅助验证数据来源}
+辅助验证数据由结构化统计数据与综合指标测算结果匹配而成，主要用于描述统计、相关性分析和辅助性回归检验，用以支持对人工智能产业集聚、创新支撑环境与城市协调发展关系的结构性解释。
+
+\subsection{样本说明}
+
+\subsubsection{主面板样本}
+主面板样本覆盖广东省21个地级市2015—2023年，共189个城市—年份观测值，主要作为数据衔接、变量匹配和样本筛选的基础底板。
+
+\subsubsection{人工智能集聚测度样本}
+人工智能产业集聚测度样本覆盖广东8个样本城市2020—2023年，共27个城市—年份观测值，主要用于识别人工智能产业集聚的城市差异与年度变化。
+
+\subsubsection{创新支撑环境评价样本}
+创新支撑环境评价样本覆盖广东省21个地级市2022—2023年，共42个城市—年份观测值，用于开展综合评价、稳健性检验和城市间横向比较。
+
+\subsubsection{匹配样本}
+匹配样本由人工智能产业集聚测度样本与创新支撑环境评价样本按城市和年份交集匹配而成，覆盖广东8个样本城市2022—2023年的14个观测值，用于四象限分层、K-means辅助验证及后续统计检验。
+
+\subsection{数据预处理}
+
+\subsubsection{文本数据处理}
+文本数据预处理主要包括年报清洗、关键词识别、命中统计和企业—城市汇总，并对企业数量过少的城市—年份观测值加入小样本标记，以降低局部噪声对结果解释的干扰。
+
+\subsubsection{结构化数据处理}
+结构化数据处理主要包括单位统一、口径核对、变量筛选和年度匹配，并在此基础上构造财政强度、金融深度、开放强度、人均消费和服务开放代理等派生变量。
+
+\subsubsection{缺失值与异常值处理}
+缺失值与异常值处理坚持保守原则，对异常值先复核来源和统计口径，对缺失值优先保留原始状态，并在样本构建阶段剔除无法支持模型估计的观测值。
+
+\section{指标构建与方法设计}
+
+\subsection{人工智能产业集聚测度模型}
+\subsubsection{测度思路与最终指标选择}
+传统产业集聚测度多依赖产值、就业人数等结构化数据，难以准确刻画人工智能产业边界及其活跃度。基于此，本文使用上市公司年报文本构建城市—年份层面的人工智能产业集聚综合指标。
+\subsubsection{综合指标分量构成}
+人工智能产业集聚综合指标由四个核心分量构成，从 "广度——强度——相对集聚" 三个维度全面刻画产业特征：
+
+{\heiti \one 人工智能企业参与度分量：}以人工智能关键词命中企业占比表示，反映样本城市中涉足人工智能领域的上市公司比例，体现产业覆盖广度。
+
+{\heiti \two 人工智能文本强度分量：}以人工智能关键词命中强度总量表示，反映所有上市公司年报中相关关键词的总提及次数，体现产业整体活跃程度。
+
+{\heiti \three 企业数量区位商分量：}衡量样本城市人工智能企业数量相对于全省平均水平的集聚程度。
+
+{\heiti \four 关键词强度区位商分量：}衡量样本城市人工智能关键词提及强度相对于全省平均水平的集聚程度。
+
+上述分量兼顾绝对规模与相对集聚程度，可较完整地刻画城市人工智能产业活跃度。
+
+\subsubsection{综合指标的数字表达}
+为消除量纲差异，首先对各原始分量进行 min-max 标准化处理：
+\begin{equation}
+    x_{ij}^{\prime}=\frac{x_{ij}-\min(x_j)}{\max(x_j)-\min(x_j)}
+\end{equation}
+
+其中，$x_{ij}$ 为第 $i$ 个城市—年份观测值在第 $j$ 个分量上的原始值。
+
+标准化后，采用熵值法确定各分量权重，其计算形式为：
+\begin{equation}
+    \begin{aligned}
+        p_{ij} &= \frac{x_{ij}^{\prime}}{\sum_{i=1}^{n}x_{ij}^{\prime}},\\
+        e_j &= -\frac{1}{\ln n}\sum_{i=1}^{n}p_{ij}\ln(p_{ij}),\\
+        w_j &= \frac{1-e_j}{\sum_{j=1}^{4}(1-e_j)}.
+    \end{aligned}
+\end{equation}
+
+最终，人工智能产业集聚综合指标的数学表达为：
+\begin{equation}
+    AI_{it}=\sum_{j=1}^{4}w_jx_{ij}^{\prime}
+\end{equation}
+其中，$n$ 为城市—年份观测值数量，$AI_{it}$ 为第 $i$ 个城市在第 $t$ 年的人工智能产业集聚综合指标。原始指标取值范围为 $[0,1]$；若后续为便于横向比较进行了标准化展示，则结果表中的数值可能出现负值，但数值越大仍表示人工智能产业集聚水平越高。
+
+\subsubsection{核心测度模型流程}
+测度流程可概括为文本清洗、企业层面关键词识别、城市—年份汇总、区位商计算和综合指标合成。考虑到样本中存在少量企业数偏少的观测值，本文同步设置小样本标记，并在结果解释中保持谨慎。
+
+\subsection{创新支撑环境综合评价模型}
+\subsubsection{评价思路与指标体系构建}
+创新支撑环境是人工智能产业集聚的重要基础。本文从财政、金融、开放、消费和服务结构五个维度构建广东省城市创新支撑环境评价体系，所有指标均为正向指标：
+
+{\heiti \one 财政强度指标：}以地方财政一般公共预算支出占GDP比重表示，反映政府对经济社会发展的支持力度
+{\heiti \two 金融深度指标：}以金融机构本外币存贷款余额占GDP比重表示，反映地区金融市场发展水平和资金供给能力
+
+{\heiti \three 开放强度指标：}以实际利用外资额占GDP比重表示，反映地区对外开放程度和吸引外资能力
+
+{\heiti \four 人均消费水平指标：}以社会消费品零售总额除以常住人口数表示，反映居民消费能力和市场需求规模
+
+{\heiti \five 服务开放代理指标：}以第三产业增加值占GDP比重表示，反映地区服务业发展水平和服务开放程度
+
+\subsubsection{主评价模型：熵值——TOPSIS法}
+本文采用熵值—TOPSIS法作为主评价模型，以实现客观赋权与综合排序的结合。
+
+\subsubsection{综合评价指标的数学表达}
+对所有正向指标进行 min-max 标准化处理：
+\begin{equation}
+    x_{ij}^{\prime}=\frac{x_{ij}-\min(x_j)}{\max(x_j)-\min(x_j)}
+\end{equation}
+其中，$x_{ij}$ 为第 $i$ 个城市—年份观测值在第 $j$ 个指标上的原始值。
+
+熵值法赋权可写为：
+\begin{equation}
+    \begin{aligned}
+        p_{ij} &= \frac{x_{ij}^{\prime}}{\sum_{i=1}^{n}x_{ij}^{\prime}},\\
+        e_j &= -\frac{1}{\ln n}\sum_{i=1}^{n}p_{ij}\ln(p_{ij}),\\
+        g_j &= 1-e_j,\\
+        w_j &= \frac{g_j}{\sum_{j=1}^{5}g_j}.
+    \end{aligned}
+\end{equation}
+
+在此基础上，构建加权标准化矩阵
+\begin{equation}
+    z_{ij}=w_jx_{ij}^{\prime},
+\end{equation}
+并定义正、负理想解与贴近度为
+\begin{equation}
+    \begin{aligned}
+        Z_j^{+} &= \max_{1\le i\le n} z_{ij}, \qquad
+        Z_j^{-} = \min_{1\le i\le n} z_{ij}, \\
+        D_i^{+} &= \sqrt{\sum_{j=1}^{5}(z_{ij}-Z_j^{+})^{2}}, \qquad
+        D_i^{-} = \sqrt{\sum_{j=1}^{5}(z_{ij}-Z_j^{-})^{2}}, \\
+        S_i &= \frac{D_i^{-}}{D_i^{+}+D_i^{-}}.
+    \end{aligned}
+\end{equation}
+其中，$n$ 为有效城市—年份观测值数量，$S_i$ 为第 $i$ 个城市—年份观测值的原始 TOPSIS 贴近度得分，其理论取值范围为 $[0,1]$。若后续为便于横向比较进行了标准化展示，则结果表中的数值可能超出 $[0,1]$，但数值越大仍表示创新支撑环境越好。
+
+\subsubsection{核心评价模型流程}
+评价流程包括数据预处理、指标计算、熵值赋权和TOPSIS综合排序。该方法能够较好反映城市创新支撑环境的相对差异。
+
+\subsection{创新支撑环境稳健性评价模型}
+
+\subsubsection{稳健性检验的必要性}
+为检验综合评价结果的稳健性，本文引入主成分分析法（PCA）作为验证模型，对熵值-TOPSIS法结果进行交叉检验。
+
+\subsubsection{稳健性评价模型：主成分分析法(PCA)}
+PCA 的核心思想是在尽可能保留信息的前提下实现降维。设保留的主成分个数为 $K$，则各主成分得分及综合得分为
+\begin{equation}
+    \begin{aligned}
+        F_{ik} &= \sum_{j=1}^{5}a_{kj}x_{ij}^{\prime},\\
+        F_i &= \frac{\sum_{k=1}^{K}\lambda_kF_{ik}}{\sum_{k=1}^{K}\lambda_k}.
+    \end{aligned}
+\end{equation}
+其中，$a_{kj}$ 为第 $k$ 个主成分在第 $j$ 个指标上的载荷系数，$\lambda_k$ 为对应特征值。考虑到 PCA 综合得分本质上是线性组合结果，正文展示阶段保留其连续得分口径。
+
+
+\subsubsection{与熵值-TOPSIS结果的对照方法}
+本研究从以下三个维度检验评价结果的稳健性：
+
+{\heiti \one 综合得分相关性检验：}计算两种方法得分的Pearson相关系数和Spearman秩相关系数，若相关系数大于0.8且在1\%水平显著，则说明结果高度一致
+
+{\heiti \two 年度排名一致性检验：}分别计算2022年和2023年两种方法排名的Kendall和谐系数，衡量排名一致性
+
+{\heiti \three 城市分层一致性检验：}将两种方法得分按中位数划分为高、低两个层次，计算总体一致性与一致率，若总体一致性大于80\%，则说明分层结果稳健
+
+\subsection{城市分层识别模型}
+
+\subsubsection{分层思路与维度选择}
+为识别样本城市在“AI集聚—创新支撑”二维结构中的位置，本文构建四象限分层模型，并分别以人工智能产业集聚均值和创新支撑环境均值作为两个分层维度。
+
+\subsubsection{四象限分层规则与数学表达}
+本研究采用中位数法作为划分标准，中位数不受极端值影响，对本研究8个样本城市的小样本数据具有更好的适用性。
+
+首先计算每个样本城市在研究期内（2022-2023年）两个维度的均值：
+\begin{equation}\label{eq:ai-city-avg}
+    \overline{AI}_{i}=\frac{1}{2}\sum_{t=2022}^{2023}AI_{it},\qquad
+    \overline{IS}_{i}=\frac{1}{2}\sum_{t=2022}^{2023}IS_{it}
+\end{equation}
+其中，$\overline{AI}_{i}$ 和 $\overline{IS}_{i}$ 分别表示第 $i$ 个城市的人工智能产业集聚均值和创新支撑环境均值。
+
+然后计算两个维度的中位数：
+\begin{equation}\label{eq:median-ai}
+    M_{AI}=\median(\overline{AI}_{1},\ldots,\overline{AI}_{8}),\qquad
+    M_{IS}=\median(\overline{IS}_{1},\ldots,\overline{IS}_{8})
+\end{equation}
+以 $M_{AI}$ 为横轴分界线，$M_{IS}$ 为纵轴分界线，将 8 个样本城市划分为四个象限：
+
+\begin{enumerate}
+\item 高集聚-高支撑型：$\overline{{AI}_{i}}\geq {M}_{AI}$且$\overline{{IS}_{i}}\geq {M}_{IS}$
+\item 高集聚-低支撑型：$\overline{{AI}_{i}}\geq {M}_{AI}$且$\overline{{IS}_{i}}<{M}_{IS}$
+\item 低集聚-低支撑型：$\overline{{AI}_{i}}<{M}_{AI}$且$\overline{{IS}_{i}}<{M}_{IS}$
+\item 低集聚-高支撑型：$\overline{{AI}_{i}}<{M}_{AI}$且$\overline{{IS}_{i}}\geq {M}_{IS}$
+\end{enumerate}
+
+\subsubsection{核心分层识别模型流程}
+分层识别流程包括匹配样本提取、城市均值计算、中位数划分和城市类型识别。具体分层结果与城市画像在后文结果章节统一展示。
+
+\subsection{城市分层验证模型}
+
+\subsubsection{验证的必要性}
+为检验四象限分层的统计合理性，本文引入K-means聚类作为辅助验证模型。该方法仅用于统计稳定性比较，不替代四象限法的主解释框架。
+
+\subsubsection{K-means聚类的基本原理与数学表达}
+K-means聚类的核心思想是"最小化类内离差平方和"，其目标函数为：
+\begin{equation}
+    J=\sum_{k=1}^{K}\sum_{i\in C_{k}}\lVert x_i-\mu_k\rVert^2
+\end{equation}
+其中，$J$ 为类内离差平方和，$K$ 为聚类类别数，$C_k$ 为第 $k$ 个簇，$x_i=(AI_i,IS_i)$ 为第 $i$ 个城市的二维特征向量，$\mu_k$ 为第 $k$ 个簇的聚类中心。
+
+本研究采用两个核心指标评价聚类效果：
+{\heiti \one 类内离差平方和：}值越小表示簇内样本相似度越高，通过"肘部法则"确定最佳聚类数
+{\heiti \two 轮廓系数：}综合考虑簇内相似度和簇间相似度，取值范围为[-1,1]，大于0.5时聚类结果具有较好合理性
+
+\subsubsection{与四象限分层结果的对照方法}
+验证流程包括构建标准化二维特征矩阵、比较不同聚类数下的诊断指标、执行K-means聚类并与四象限结果对照。若较小聚类数在统计指标上更优，而四象限结构在解释上更清晰，则以四象限分层作为主展示框架。
+
+\subsection{描述统计模型}
+
+\subsubsection{描述统计的目的与变量范围}
+描述统计用于把握核心变量的分布位置、离散程度和极值范围。本文主要考察以下三类变量：
+
+{\heiti \one 人工智能产业集聚维度：}人工智能产业集聚综合指标
+
+{\heiti \two 创新支撑环境维度：}创新支撑环境熵值-TOPSIS 综合得分、创新支撑环境PCA稳健性得分（已通过计算补充）
+
+{\heiti \three 协调发展维度：}协调发展综合指标
+
+\subsubsection{统计量选择与结果呈现}
+为全面刻画变量分布特征，本研究选择六个核心统计量：样本量（N）、均值（Mean）、标准差（Std. Dev.）、最小值（Min）、最大值（Max）和中位数（Median）。描述统计结果在正文的辅助性统计检验部分统一呈现，用于从分布位置、离散程度和极值范围三个层面把握核心变量的总体特征。
+
+\subsection{相关性分析模型}
+
+\subsubsection{相关性分析的目的与方法选择}
+相关性分析用于考察人工智能产业集聚、创新支撑环境与协调发展之间的线性关系，并识别支撑环境内部的关键关联维度。考虑到核心变量均为连续型变量且样本量较小，本文采用Pearson相关分析。
+
+\subsubsection{相关系数的数学表达与显著性检验}
+Pearson相关系数计算公式为：
+\begin{equation}
+    r_{xy}=\frac{\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y})}
+    {\sqrt{\sum_{i=1}^{n}(x_i-\bar{x})^2}\sqrt{\sum_{i=1}^{n}(y_i-\bar{y})^2}}
+\end{equation}
+
+其中，$x_i$ 与 $y_i$ 为两个变量的观测值，$\bar{x}$ 与 $\bar{y}$ 为变量均值，$n$ 为样本量。显著性检验采用
+\begin{equation}
+    t=r\sqrt{\frac{n-2}{1-r^2}},
+\end{equation}
+其自由度为 $n-2$。
+
+\subsubsection{相关性分析结果呈现}
+本研究分“核心变量整体关联”和“支撑分维度关联”两层展开，具体数值结果在后文辅助性统计检验部分统一展示。
+
+\subsection{辅助性回归模型}
+
+\subsubsection{回归分析的目的与定位}
+辅助性回归分析是本研究统计检验的收尾环节，核心目的是在控制基础经济变量后，验证相关性分析中发现的 “创新支撑——协调发展”“AI集聚——协调发展” 关系是否稳健，同时识别创新支撑环境的关键驱动维度。
+
+需明确的是，由于匹配样本仅包含8个城市2022-2023年的14个观测值，样本量较小且难以解决内生性问题（如双向因果、遗漏变量），本回归分析仅承担支持性统计检验任务，不进行强因果推断，结论需结合城市分层和相关性结果综合解读。
+
+\subsubsection{变量定义与模型设定}
+变量采用统一处理口径。原始综合评价指标通常位于 $[0,1]$ 区间；若为便于比较进行了标准化或中心化处理，则实证结果中的变量取值可出现负值。
+
+{\heiti \one 被解释变量：}协调发展综合指标，衡量“AI产业——创新支撑”协同水平。
+
+{\heiti \two 核心解释变量：}AI产业集聚综合指标，反映产业集聚程度。
+
+{\heiti \three 创新支撑变量：}包括创新支撑环境综合得分及其分维度指标，用于识别创新支撑环境对协调发展水平的影响。
+\begin{enumerate}
+    \item 综合层：创新支撑环境熵值-TOPSIS 得分
+    \item 分维度层：财政强度、金融深度、开放强度、人均消费、服务开放代理指标。
+\end{enumerate}
+
+{\heiti \four 控制变量：}选取地区生产总值（GDP）、人均地区生产总值和第三产业占比，控制经济规模与产业结构的干扰。
+
+模型设定采用三类递进式OLS模型：
+\begin{equation}
+    \begin{aligned}
+        \text{模型1:}\quad
+        Coordination_{it} &= \alpha_0+\beta_1AI_{it}+\varepsilon_{it},\\
+        \text{模型2:}\quad
+        Coordination_{it} &= \alpha_0+\beta_1AI_{it}+\beta_2IS_{it}
+        +\boldsymbol{\delta}^{\top}\mathbf{X}_{it}+\varepsilon_{it},\\
+        \text{模型3:}\quad
+        Coordination_{it} &= \alpha_0+\beta_1AI_{it}
+        +\sum_{k=1}^{5}\theta_kISdim_{kit}
+        +\boldsymbol{\delta}^{\top}\mathbf{X}_{it}+\varepsilon_{it}.
+    \end{aligned}
+\end{equation}
+其中，$\alpha_0$ 为截距项，$\beta$ 与 $\theta_k$ 为核心解释变量系数，$\mathbf{X}_{it}$ 为控制变量向量，$\boldsymbol{\delta}$ 为控制变量系数向量，$\varepsilon_{it}$ 为随机误差项。
+\par 计量检验与Stata实现主要参照现代计量分析方法的相关处理框架，
+并结合既有教材中的常用设定与解释方式\cite{ref7}。
+\subsubsection{模型局限性说明}
+
+{\heiti \one 样本量约束：}14个观测值导致统计检验力不足；
+{\heiti \two 内生性问题：}未完全排除“协调发展反向促进创新支撑”的双向因果；
+{\heiti \three 控制变量有限：}未纳入人才、技术研发等潜在影响因素。
+
+因此，辅助性回归更适合作为支持性检验工具，其解释应与城市分层和相关性分析结合使用。
+
+
+
+\section{人工智能产业集聚测度结果分析}%（约 780 字）
+\subsection{样本城市人工智能集聚水平描述}
+从27个“城市——年份”观测值的整体特征来看，样本城市人工智能产业集聚综合指标均值为-0.031，中位数为0.285，表明多数城市处于中等偏上集聚水平，但整体未达高位，仍有较大提升空间。
+
+按2022—2023年城市均值排序，样本城市集聚水平呈现明显分层（见表1）。从当前结果看，惠州、珠海和佛山位列前三，其中惠州均值最高，但仅有1个有效观测，需结合小样本特征谨慎解释；珠海和佛山虽均值略低于惠州，但具有连续观测支撑，结果相对更稳健。深圳和中山处于中间梯队，说明两市已具备一定人工智能产业活跃度；广州、东莞和汕头则相对偏低，其中汕头和东莞的企业命中比例明显不足，反映出人工智能产业渗透程度仍然有限。
+
+\begin{table}[htbp]
+\centering
+\caption{样本城市人工智能产业集聚水平排名（2022--2023年均值）}
+{\tablebodyformat
+\begin{tabular}{lcccc}
+\toprule
+城市 & 观测数 & 集聚均值 & 命中企业占比均值 & 关键词命中均值 \\
+\midrule
+惠州市 & 1 & 1.4389 & 1.0000 & 10.00 \\
+珠海市 & 4 & 0.6389 & 0.8583 & 16.25 \\
+佛山市 & 4 & 0.6068 & 0.7750 & 17.75 \\
+深圳市 & 4 & 0.3040 & 0.7949 & 97.50 \\
+中山市 & 4 & 0.1727 & 0.7875 & 9.50 \\
+广州市 & 4 & -0.3318 & 0.5972 & 18.50 \\
+东莞市 & 3 & -0.9399 & 0.5000 & 1.33 \\
+汕头市 & 3 & -1.6745 & 0.0833 & 0.67 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{picture/fig_ai_city_ranking.png}
+    \caption{样本城市AI集聚水平排序}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{picture/fig_ai_year_trend.png}
+    \caption{样本期AI集聚年度变化}
+\end{subfigure}
+\caption{人工智能产业集聚的横向排序与纵向变化}
+\end{figure}
+
+
+\subsection{样本城市人工智能集聚差异分析}
+样本城市人工智能集聚水平的差异主要体现在三个层面：
+
+\begin{enumerate}
+    \item 整体离散程度显著。集聚综合指标标准差为0.911，说明城市间产业集聚水平差距较大。
+    \item 区域分组差异突出。珠三角城市整体均值明显高于非珠三角城市，区域不均衡特征较为明显。
+    \item 企业参与度是主要差异来源。高集聚城市的AI关键词命中企业占比明显高于低集聚城市。
+\end{enumerate}
+
+\subsection{人工智能集聚的阶段性变化特征}
+2022—2023年样本城市AI产业集聚呈现“整体回升、分化加剧”的阶段性特征。总体均值由-0.052升至0.018，表明产业活跃度有所提升。分城市看，珠海增长最为明显，东莞则略有回落，说明不同城市在AI产业扩张节奏上存在差异。
+
+
+\section{创新支撑环境评价结果分析}%（约 610 字）
+
+\subsection{广东省地级市创新支撑环境综合评价结果}
+基于41个“地级市——年份”有效观测值（剔除基础指标缺失样本），广东省地级市创新支撑环境整体呈现“少数领先、多数分化”的特征。为便于城市横向排序，本节优先采用熵值-TOPSIS原始贴近度均值进行展示。从城市均值看，深圳、广州、珠海、中山和惠州位列前五，说明这些城市在开放程度、服务支撑与综合要素保障方面具有较强优势；佛山处于中游水平，而汕头、潮州等城市得分相对偏低，整体支撑能力仍有提升空间。
+
+结合PCA稳健性得分验证，两类得分的Pearson相关系数达0.877**（$p<0.01$），
+城市分层一致性为85.4\%，且PCA分析3个主成分累计方差贡献率91.46\%，
+充分证明综合评价结果可靠，不受方法选择干扰。
+
+\begin{table}[htbp]
+\centering
+\caption{广东省创新支撑环境综合得分前八位城市}
+{\tablebodyformat
+\begin{tabular}{lcccc}
+\toprule
+排名 & 城市 & 熵值-TOPSIS均值 & PCA均值 & 观测数 \\
+\midrule
+1 & 深圳市 & 0.5926 & 3.9109 & 2 \\
+2 & 广州市 & 0.5865 & 3.4305 & 2 \\
+3 & 珠海市 & 0.5106 & 2.3395 & 2 \\
+4 & 中山市 & 0.3908 & 1.8557 & 2 \\
+5 & 惠州市 & 0.3799 & 0.8465 & 2 \\
+6 & 河源市 & 0.3671 & -0.4744 & 2 \\
+7 & 湛江市 & 0.2765 & -0.2633 & 2 \\
+8 & 东莞市 & 0.2638 & 0.9587 & 2 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{picture/fig_innovation_city_ranking.png}
+\caption{广东省地级市创新支撑环境综合得分排序}
+\end{figure}
+
+\subsection{创新支撑环境主要分化来源分析}
+创新支撑环境的城市分化主要来自服务开放、开放强度和人均消费三个维度。从指标权重看，服务开放度和开放强度贡献最大，说明支撑环境差异首先体现在外向联系和现代服务功能。区域层面上，珠三角城市整体得分明显高于非珠三角城市，创新资源与开放条件的集中仍是省域差距的重要来源。
+
+\begin{table}[htbp]
+\centering
+\caption{创新支撑环境评价指标熵值权重}
+{\tablebodyformat
+\begin{tabular}{lcc}
+\toprule
+指标 & 熵值权重 & 权重排序 \\
+\midrule
+服务开放度代理指标 & 0.2675 & 1 \\
+开放强度指标 & 0.2432 & 2 \\
+人均消费水平指标 & 0.2258 & 3 \\
+金融深度指标 & 0.1334 & 4 \\
+财政强度指标 & 0.1301 & 5 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{picture/fig_entropy_weights.png}
+\caption{创新支撑环境评价指标权重分布}
+\end{figure}
+
+\subsection{不同年份创新支撑环境变化分析}
+2022—2023年广东省创新支撑环境总体呈改善态势，熵值-TOPSIS均值由-0.051升至-0.0024。珠海提升较快，梅州略有回落，说明不同城市在开放与金融条件改善上的节奏并不一致。总体来看，高支撑城市保持优势，低支撑城市波动更大。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{picture/fig_innovation_year_change.png}
+\caption{广东省创新支撑环境年度变化情况}
+\end{figure}
+
+
+
+\section{城市分层与结构识别分析}%（约 510 字）
+
+\subsection{四象限分层结果}
+本节采用匹配样本中的AI产业集聚均值与创新支撑替代指数均值进行四象限划分。以$M_{AI}\approx 0.316$和$M_{IS}\approx 0.013$为分界，8个样本城市被均衡划分为四类，反映出较明显的“集聚—支撑”匹配差异。
+
+\begin{table}[htbp]
+\centering
+\caption{样本城市四象限分层结果}
+{\tablebodyformat
+\begin{tabular}{lccc}
+\toprule
+城市 & AI集聚均值 & 创新支撑均值 & 城市类型 \\
+\midrule
+中山市 & 0.3800 & 0.0951 & 高集聚-高支撑 \\
+珠海市 & 0.5223 & 1.1171 & 高集聚-高支撑 \\
+佛山市 & 0.6050 & -0.5928 & 高集聚-低支撑 \\
+惠州市 & 1.4389 & -0.0682 & 高集聚-低支撑 \\
+广州市 & -0.1926 & 1.2919 & 低集聚-高支撑 \\
+深圳市 & 0.2526 & 1.6205 & 低集聚-高支撑 \\
+东莞市 & -0.2711 & -0.4490 & 低集聚-低支撑 \\
+汕头市 & -1.8185 & -0.4947 & 低集聚-低支撑 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{picture/fig_city_quadrant.png}
+\caption{样本城市“AI集聚—创新支撑”四象限分布图}
+\end{figure}
+
+\subsection{不同类型城市画像分析}
+
+\subsubsection{象限I（协同发展型）：}中山、珠海AI产业与支撑环境适配，无明显短板，依托中等制造业基础，财政、开放政策精准对接AI应用场景；
+
+\subsubsection{象限II（产业超前型）：}佛山、惠州AI集聚居前，但创新支撑均值低于分界线，表现为产业动能先行、支撑条件滞后；
+
+\subsubsection{象限III（双弱起步型）：}东莞、汕头双指标落后，东莞受传统制造业转型慢拖累，汕头因非珠三角区位导致开放、金融资源匮乏；
+
+\subsubsection{象限IV（支撑冗余型）：}广州、深圳创新支撑较强，但AI集聚表现低于高集聚组，表现为支撑条件领先而产业集聚优势释放不足。
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{picture/fig_city_profile_dual.png}
+    \caption{城市双维画像}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{picture/fig_city_profile_radar.png}
+    \caption{城市类型雷达画像}
+\end{subfigure}
+\caption{样本城市协同与错配的画像展示}
+\end{figure}
+
+
+\subsection{聚类验证结果分析}
+K-means聚类结果显示，$k=2$ 时轮廓系数最高，为0.4313；$k=3$ 和$k=4$时分别降至0.3539和0.3109。说明从统计稳定性看，较少类别更占优；但从结构解释看，四象限分层仍更适合作为正文主框架。
+
+\begin{table}[htbp]
+\centering
+\caption{K-means聚类诊断结果}
+{\tablebodyformat
+\begin{tabular}{ccc}
+\toprule
+聚类数 $k$ & 轮廓系数 & 类内离差平方和 \\
+\midrule
+2 & 0.4313 & 7.8732 \\
+3 & 0.3539 & 3.1771 \\
+4 & 0.3109 & 1.6408 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsection{协同与错配结构解释}
+
+\subsubsection{协同结构（象限I）：}中山、珠海 “高——高” 匹配源于 “产业需求——环境供给” 适配，中等集聚水平对支撑资源要求适中，政策落地效率高；
+
+\subsubsection{错配结构：}象限II（高——低）因制造业数字化转型需求倒逼AI产业超前，但金融、服务支撑未同步跟进，形成 “需求领先——供给滞后” 错配；象限IV（低——高）因广州、深圳支撑资源过剩（如深圳金融深度=0.82），但AI产业布局分散，导致 “供给冗余——需求不足” 错配。
+
+\section{辅助性统计检验}%（约 510 字）
+
+\subsection{描述统计结果}
+核心变量分布总体合理。AI产业集聚指标离散程度较高，创新支撑环境的两类得分保持较高一致性，匹配样本的协调发展指标整体处于中等水平，这为后续检验提供了基础。
+
+\subsection{相关性分析结果}
+相关性结果表明，AI集聚与创新支撑环境之间仅表现为弱相关，AI集聚与协调发展之间也未形成稳定正相关。相比之下，创新支撑环境及其中的服务开放度与协调发展之间表现出更直接的正向联系。
+
+\begin{table}[htbp]
+\centering
+\caption{核心变量相关性结果}
+{\tablebodyformat
+\begin{tabular}{llc}
+\toprule
+变量1 & 变量2 & 相关系数 \\
+\midrule
+AI产业集聚综合指标 & 创新支撑替代指数 & 0.0966 \\
+AI产业集聚综合指标 & 创新支撑综合得分 & 0.2188 \\
+AI产业集聚综合指标 & 协调发展综合指标 & -0.3662 \\
+创新支撑替代指数 & 协调发展综合指标 & 0.5378 \\
+创新支撑综合得分 & 协调发展综合指标 & 0.4926 \\
+服务开放度 & 协调发展综合指标 & 0.7659 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.80\textwidth]{picture/fig_correlation_heatmap.png}
+\caption{核心变量相关性热力图}
+\end{figure}
+
+\subsection{辅助性回归结果}
+以协调发展为被解释变量的三类递进模型（控制GDP、产业结构等变量）
+结果显示：
+模型1（仅AI集聚）中，$R^2=0.1341$，AI系数约为-0.3743，$p=0.1728$；
+基准模型中，$R^2=0.9330$，调整后$R^2=0.8755$，AI系数约为-0.1674，$p=0.3080$；
+创新支撑组成项模型中，$R^2=0.8752$，调整后$R^2=0.7682$，AI系数约为-0.3441，$p=0.0940$。总体看，AI集聚未形成稳健显著的正向效应，创新支撑结构变量的解释作用相对更强，但仍需结合小样本约束谨慎解读。
+
+\begin{table}[htbp]
+\centering
+\caption{辅助性回归结果汇总}
+{\tablebodyformat
+\begin{tabular}{lccccc}
+\toprule
+模型 & 样本量 & 参数个数 & $R^2$ & 调整后$R^2$ & AI系数 \\
+\midrule
+AI单变量模型 & 14 & 2 & 0.1341 & 0.0620 & -0.3743 \\
+基准模型 & 14 & 7 & 0.9330 & 0.8755 & -0.1674 \\
+创新支撑组成项模型 & 14 & 7 & 0.8752 & 0.7682 & -0.3441 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{picture/fig_regression_coefficients.png}
+\caption{辅助性回归模型核心系数对比}
+\end{figure}
+
+\subsection{结果的结构性解释}
+综合来看，创新支撑环境与协调发展的联系强于AI集聚，当前样本也不足以支持“AI集聚显著促进协调发展”的稳健结论。因此，广东省城市协调发展差异更突出地表现为创新支撑条件的层级差异，其次才体现为AI产业集聚水平的错位分化。
+
+
+\section{结论与建议}
+
+\subsection{主要研究结论}
+本文的主要结论可概括为以下三点。第一，广东省人工智能产业集聚与创新支撑环境均存在明显的城市差异，其中创新支撑环境的分层特征更为突出，深圳、广州、珠海等城市在综合支撑能力上保持领先。第二，重点样本城市在“AI集聚—创新支撑”二维结构上呈现清晰分化，可划分为协同发展型、产业超前型、支撑冗余型和双弱起步型，不同类型城市面临的问题并不相同。第三，辅助性统计检验表明，创新支撑环境与协调发展的联系整体强于AI产业集聚，当前样本尚不足以支持“AI集聚显著促进协调发展”的稳健结论，说明区域协调差异更直接地体现为支撑条件的层级差异。
+
+\subsection{政策建议}
+基于上述结论，本文提出以下建议。其一，对协同发展型城市，应进一步巩固产业与环境的良性互动，强化技术扩散和示范带动作用。其二，对产业超前型城市，应优先补齐金融支持、开放平台和现代服务供给等短板，使产业动能与支撑条件更加匹配。其三，对支撑冗余型城市，应加快人工智能场景落地和产业链集聚，推动现有创新资源向新质生产力转化。其四，对双弱起步型城市，应以基础能力建设为重点，优先改善开放条件、创新资源供给和产业承载能力，逐步缩小与核心城市之间的差距。
+
+\subsection{研究不足与展望}
+本文仍存在一定局限。首先，人工智能产业集聚测度主要基于上市公司年报文本，尚未覆盖大量未上市企业，样本代表性仍有提升空间。其次，匹配样本仅包含8个城市2022—2023年的14个观测值，限制了辅助性统计检验的稳健性和解释强度。最后，本文以结构识别和支持性检验为主，尚未进一步处理更强的因果识别问题。未来可在扩大样本范围、引入更长时序面板和补充企业微观数据的基础上，进一步检验人工智能产业集聚、新质生产力培育与区域协调发展之间的动态机制。
+
+% (五) 参考文献
+% =============================================
+\newpage
+\phantomsection
+\addcontentsline{toc}{section}{参考文献}
+\bibliographystyle{gbt7714-numerical}
+\bibliography{references}
+
+% =============================================
+% (六) 附录
+% =============================================
+\newpage
+\appendix
+\renewcommand{\appendixname}{附录}
+\section*{附录}
+\phantomsection
+\addcontentsline{toc}{section}{附录}
+
+\subsection*{附录A：企业年报文本挖掘与词频统计Python核心代码}
+\begin{lstlisting}[language=Python]
+import pdfplumber
+import jieba
+# 此处粘贴你们提取AI特征指数的Python核心代码
+def extract_ai_index(pdf_path, ai_dict):
+    pass
+\end{lstlisting}
+
+\subsection*{附录B：创新支撑环境评价与辅助回归模型代码}
+\begin{lstlisting}[language=Python]
+# 此处粘贴你们用于熵值法-TOPSIS、PCA稳健性检验和辅助回归的核心代码
+\end{lstlisting}
+
+\ifanonymized
+\else
+\newpage
+\section*{致谢}
+\phantomsection
+\addcontentsline{toc}{section}{致谢}
+感谢指导教师及相关老师在选题设计、数据整理和论文修改过程中给予的指导与帮助，感谢团队成员在资料搜集、模型讨论和写作完善中的协作与支持。
+\fi
+
+\end{document}
