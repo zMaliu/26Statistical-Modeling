@@ -664,6 +664,7 @@ M4 & 全部控制变量 & 0.0353 & 0.329 & 126 \\
 
 \begin{table}[htbp]
 \centering
+\begin{threeparttable}
 \caption{Panel SDM中AI产业集聚代理指标的效应分解}
 {\tablebodyformat
 \begin{tabular}{lccc}
@@ -676,6 +677,11 @@ M4 & 全部控制变量 & 0.0353 & 0.329 & 126 \\
 \bottomrule
 \end{tabular}
 }
+\begin{tablenotes}
+\footnotesize
+\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著。直接效应、间接效应和总效应分别反映本地影响、邻近城市空间溢出影响及二者合计影响。
+\end{tablenotes}
+\end{threeparttable}
 \end{table}
 
 \subsection{空间滞后项与稳健性结果}
@@ -683,6 +689,7 @@ M4 & 全部控制变量 & 0.0353 & 0.329 & 126 \\
 
 \begin{table}[htbp]
 \centering
+\begin{threeparttable}
 \caption{不同空间矩阵下SDM核心系数比较}
 {\tablebodyformat
 \begin{tabular}{lccc}
@@ -695,6 +702,11 @@ M4 & 全部控制变量 & 0.0353 & 0.329 & 126 \\
 \bottomrule
 \end{tabular}
 }
+\begin{tablenotes}
+\footnotesize
+\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著；空间滞后AI系数用于观察邻近城市AI产业集聚对本市协调发展参照指标的关联方向。
+\end{tablenotes}
+\end{threeparttable}
 \end{table}
 
 此外，考虑到区域协调发展水平较高的城市也可能反向吸引人工智能企业落户，本文在解释结果时保持因果边界：一方面，双向固定效应模型和Panel SDM均控制了城市个体效应与年份共同冲击，能够吸收大量不随时间变化的城市禀赋和宏观年度扰动；另一方面，本文通过三类空间权重矩阵替换检验模型设定敏感性。未来研究仍可进一步引入工具变量、动态空间面板或系统GMM模型，以更充分地处理反向因果和动态内生性问题。

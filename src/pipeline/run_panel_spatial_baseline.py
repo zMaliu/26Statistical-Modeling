@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -44,6 +45,34 @@ STATA_README_PATH = STATA_DIR / "SDM操作与解读说明.md"
 MORAN_AI_FIG = PICTURE_DIR / "fig_moran_ai_trend.png"
 MORAN_COORD_FIG = PICTURE_DIR / "fig_moran_coordination_trend.png"
 LISA_SCATTER_FIG = PICTURE_DIR / "fig_lisa_ai_2023_scatter.png"
+
+
+def configure_plot_style() -> None:
+    """Use a CJK-capable font and high-resolution export settings."""
+    preferred_fonts = [
+        "Microsoft YaHei",
+        "SimHei",
+        "SimSun",
+        "Noto Sans CJK SC",
+        "Source Han Sans SC",
+    ]
+    available = {font.name for font in fm.fontManager.ttflist}
+    selected = next((font for font in preferred_fonts if font in available), "DejaVu Sans")
+    plt.rcParams.update(
+        {
+            "font.family": selected,
+            "font.sans-serif": [selected],
+            "axes.unicode_minus": False,
+            "figure.dpi": 170,
+            "savefig.dpi": 340,
+            "font.size": 11,
+            "axes.titlesize": 14,
+            "axes.labelsize": 11,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+            "legend.fontsize": 10,
+        }
+    )
 
 
 CITY_ORDER_COL = "city_name"
@@ -680,30 +709,53 @@ SDM 不建议直接解读原始回归表中的 `ai` 或空间滞后项系数。�
 
 
 def plot_moran_trends(global_moran: pd.DataFrame) -> None:
+    configure_plot_style()
     PICTURE_DIR.mkdir(parents=True, exist_ok=True)
     for var, path, title in [
-        ("ai_full_panel_index", MORAN_AI_FIG, "Global Moran's I: AI/Digital Proxy"),
-        ("coordination_reference_index", MORAN_COORD_FIG, "Global Moran's I: Coordination Reference"),
+        ("ai_full_panel_index", MORAN_AI_FIG, "AI产业集聚全局Moran's I"),
+        ("coordination_reference_index", MORAN_COORD_FIG, "协调发展参照指标全局Moran's I"),
     ]:
         sub = global_moran.loc[global_moran["variable"] == var].sort_values("year")
         if sub.empty:
             continue
-        plt.figure(figsize=(7, 4.2), dpi=160)
-        plt.plot(sub["year"], sub["moran_i"], marker="o", linewidth=2)
-        plt.axhline(0, color="#666666", linewidth=0.8, linestyle="--")
+        fig, ax = plt.subplots(figsize=(7.2, 4.5))
+        ax.plot(
+            sub["year"],
+            sub["moran_i"],
+            marker="o",
+            linewidth=2.4,
+            markersize=6.5,
+            color="#1f5f8b",
+            markerfacecolor="#f2b134",
+            markeredgecolor="#1f5f8b",
+            markeredgewidth=1.0,
+        )
+        ax.axhline(0, color="#6b7280", linewidth=0.8, linestyle="--")
         for _, row in sub.iterrows():
-            label = "*" if row["p_sim_two_sided"] < 0.10 else ""
-            plt.text(row["year"], row["moran_i"], label, ha="center", va="bottom", fontsize=11)
-        plt.title(title)
-        plt.xlabel("Year")
-        plt.ylabel("Moran's I")
-        plt.grid(alpha=0.25)
-        plt.tight_layout()
-        plt.savefig(path)
-        plt.close()
+            marker = "***" if row["p_sim_two_sided"] < 0.01 else "**" if row["p_sim_two_sided"] < 0.05 else "*" if row["p_sim_two_sided"] < 0.10 else ""
+            ax.text(
+                row["year"],
+                row["moran_i"] + 0.004,
+                marker,
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                color="#8c2d04",
+            )
+        ax.set_title(title, pad=12, color="#17202a")
+        ax.set_xlabel("年份")
+        ax.set_ylabel("Moran's I")
+        ax.set_xticks(sub["year"].astype(int).tolist())
+        ax.grid(axis="y", alpha=0.22, linestyle="--", linewidth=0.7)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        fig.tight_layout()
+        fig.savefig(path, bbox_inches="tight")
+        plt.close(fig)
 
 
 def plot_lisa_scatter_2023(local_moran: pd.DataFrame) -> None:
+    configure_plot_style()
     sub = local_moran[
         (local_moran["variable"] == "ai_full_panel_index") & (local_moran["year"] == 2023)
     ].copy()
@@ -716,27 +768,51 @@ def plot_lisa_scatter_2023(local_moran: pd.DataFrame) -> None:
         "Low-High": "#74add1",
         "Not significant": "#bdbdbd",
     }
-    plt.figure(figsize=(6.2, 5), dpi=160)
-    for cluster, group in sub.groupby("lisa_cluster_p10"):
-        plt.scatter(
+    cluster_labels = {
+        "High-High": "高-高集聚",
+        "Low-Low": "低-低集聚",
+        "High-Low": "高-低离群",
+        "Low-High": "低-高离群",
+        "Not significant": "不显著",
+    }
+    cluster_order = ["High-High", "Low-Low", "High-Low", "Low-High", "Not significant"]
+    fig, ax = plt.subplots(figsize=(6.6, 5.2))
+    for cluster in cluster_order:
+        group = sub[sub["lisa_cluster_p10"] == cluster]
+        if group.empty:
+            continue
+        ax.scatter(
             group["z_value"],
             group["spatial_lag_z"],
-            label=cluster,
-            s=45,
+            label=cluster_labels.get(cluster, cluster),
+            s=58,
             color=color_map.get(cluster, "#666666"),
-            edgecolor="white",
-            linewidth=0.6,
+            edgecolor="#ffffff",
+            linewidth=0.7,
+            alpha=0.90,
         )
-    plt.axhline(0, color="#555555", linewidth=0.8)
-    plt.axvline(0, color="#555555", linewidth=0.8)
-    plt.xlabel("AI/Digital Proxy (standardized)")
-    plt.ylabel("Spatial Lag")
-    plt.title("LISA Scatter: AI/Digital Proxy, 2023")
-    plt.legend(frameon=False, fontsize=8)
-    plt.grid(alpha=0.2)
-    plt.tight_layout()
-    plt.savefig(LISA_SCATTER_FIG)
-    plt.close()
+    highlight = sub[sub["lisa_cluster_p10"].isin(["High-High", "Low-High"])]
+    for _, row in highlight.iterrows():
+        ax.annotate(
+            row["city_name"].replace("市", ""),
+            (row["z_value"], row["spatial_lag_z"]),
+            xytext=(4, 4),
+            textcoords="offset points",
+            fontsize=8.5,
+            color="#17202a",
+        )
+    ax.axhline(0, color="#4b5563", linewidth=0.9)
+    ax.axvline(0, color="#4b5563", linewidth=0.9)
+    ax.set_xlabel("AI产业集聚标准化值")
+    ax.set_ylabel("空间滞后项")
+    ax.set_title("2023年AI产业集聚局部空间关联散点图", pad=12, color="#17202a")
+    ax.legend(frameon=True, facecolor="white", edgecolor="#e5e7eb", loc="best")
+    ax.grid(alpha=0.18, linestyle="--", linewidth=0.7)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(LISA_SCATTER_FIG, bbox_inches="tight")
+    plt.close(fig)
 
 
 def main() -> None:

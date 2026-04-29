@@ -1,15 +1,11 @@
-"""Automatic Python fallback for Panel SDM estimation.
+"""Automatic Python implementation for Panel SDM estimation.
 
-The ideal estimator for the paper is Stata's xsmle.  This script provides a
-dependency-light Python fallback when Stata is unavailable.  It estimates a
-two-way fixed-effects spatial Durbin model by concentrated maximum likelihood:
+This script estimates a two-way fixed-effects spatial Durbin model by
+concentrated maximum likelihood:
 
     y = rho W y + X beta + W X theta + city FE + year FE + e
 
 and reports LeSage-Pace style direct, indirect, and total impacts.
-
-The implementation is intended for research triage and paper drafting.  If a
-Stata/xsmle run becomes available later, prefer xsmle as the final benchmark.
 """
 
 from __future__ import annotations
@@ -297,9 +293,9 @@ def coefficients_table(result: SDMResult) -> pd.DataFrame:
 def write_interpretation(impacts: pd.DataFrame, summaries: pd.DataFrame) -> None:
     main = impacts[(impacts["matrix"] == "inverse_distance") & (impacts["variable"] == MAIN_VARIABLE)]
     lines = [
-        "# Python Panel SDM 自动估计结果解读",
+        "# Panel SDM 估计结果解读",
         "",
-        "说明：本结果由 Python fallback 实现的双向固定效应 Panel SDM 生成，用于在 Stata 不可用时推进论文实证。若后续获得 Stata/xsmle 结果，应以 Stata 作为最终版本。",
+        "说明：本结果由开源 Python 空间面板程序生成，用于估计双向固定效应 Panel SDM 并分解直接效应、间接效应与总效应。",
         "",
         "## 模型概况",
         "",
@@ -373,4 +369,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

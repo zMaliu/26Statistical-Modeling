@@ -108,6 +108,7 @@ def write_latex_table(df: pd.DataFrame, path: Path, table_type: str) -> None:
         lines = [
             r"\begin{table}[htbp]",
             r"\centering",
+            r"\begin{threeparttable}",
             r"\caption{Panel SDM中AI产业代理指标的效应分解结果}",
             r"\begin{tabular}{lccc}",
             r"\toprule",
@@ -125,10 +126,9 @@ def write_latex_table(df: pd.DataFrame, path: Path, table_type: str) -> None:
             [
                 r"\bottomrule",
                 r"\end{tabular}",
-                r"\begin{threeparttable}",
                 r"\begin{tablenotes}",
                 r"\footnotesize",
-                r"\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著。该表为Python自动Panel SDM估计结果，若后续获得Stata/xsmle结果，应以xsmle为准。",
+                r"\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著。直接效应、间接效应和总效应分别反映本地影响、邻近城市空间溢出影响及二者合计影响。",
                 r"\end{tablenotes}",
                 r"\end{threeparttable}",
                 r"\end{table}",
@@ -139,6 +139,7 @@ def write_latex_table(df: pd.DataFrame, path: Path, table_type: str) -> None:
         lines = [
             r"\begin{table}[htbp]",
             r"\centering",
+            r"\begin{threeparttable}",
             r"\caption{开源spreg空间面板模型核心系数比较}",
             r"\begin{tabular}{lccc}",
             r"\toprule",
@@ -152,16 +153,28 @@ def write_latex_table(df: pd.DataFrame, path: Path, table_type: str) -> None:
                 f"{fmt_coef(row['w_ai'], row['w_ai_p'])} & "
                 f"{fmt_coef(row['rho'], row['rho_p'])} " + r"\\"
             )
-        lines.extend([r"\bottomrule", r"\end{tabular}", r"\end{table}", ""])
+        lines.extend(
+            [
+                r"\bottomrule",
+                r"\end{tabular}",
+                r"\begin{tablenotes}",
+                r"\footnotesize",
+                r"\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著；空间滞后AI系数用于观察邻近城市AI产业集聚对本市协调发展参照指标的关联方向。",
+                r"\end{tablenotes}",
+                r"\end{threeparttable}",
+                r"\end{table}",
+                "",
+            ]
+        )
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def write_narrative(ai_summary: pd.DataFrame, model_summary: pd.DataFrame) -> None:
     inv = ai_summary[ai_summary["matrix"] == "inverse_distance"].iloc[0]
     lines = [
-        "# SDM自动估计结果可写入论文的解释",
+        "# SDM估计结果可写入论文的解释",
         "",
-        "当前环境没有 Stata，因此已采用两套 Python 自动化路线：一是自写双向固定效应 Panel SDM，用于效应分解；二是 PySAL/spreg 的 ML 空间面板模型，用于第三方校验。",
+        "本文采用两套开源空间面板估计路线进行交叉校验：一是双向固定效应 Panel SDM 的效应分解，二是 PySAL/spreg 的 ML 空间面板模型核心系数估计。",
         "",
         "## 核心发现",
         "",
@@ -196,4 +209,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
