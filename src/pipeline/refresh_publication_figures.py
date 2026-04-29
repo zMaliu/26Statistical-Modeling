@@ -273,12 +273,225 @@ def plot_text_proxy_validation(panel: pd.DataFrame, out_path: Path) -> None:
     save_figure(fig, out_path)
 
 
+def plot_city_ai_support_bubble(panel: pd.DataFrame, out_path: Path) -> None:
+    """Plot city-level AI agglomeration against innovation support."""
+    city = (
+        panel.groupby(["city_name", "region_group"], as_index=False)
+        .agg(
+            ai=("ai_full_panel_index", "mean"),
+            innovation=("innovation_support_index", "mean"),
+            coordination=("coordination_reference_index", "mean"),
+            gdp=("gdp", "mean"),
+        )
+        .sort_values("ai", ascending=False)
+    )
+    region_colors = {
+        "珠三角": PRIMARY,
+        "粤东": ACCENT,
+        "粤西": DEEP_RED,
+        "粤北": DEEP_BLUE,
+    }
+    coord_min = city["coordination"].min()
+    coord_span = city["coordination"].max() - coord_min
+    city["bubble"] = 120 + 520 * (city["coordination"] - coord_min) / coord_span
+
+    fig, ax = plt.subplots(figsize=(7.45, 5.35))
+    for region, group in city.groupby("region_group"):
+        ax.scatter(
+            group["ai"],
+            group["innovation"],
+            s=group["bubble"],
+            color=region_colors.get(region, MUTED),
+            edgecolor="white",
+            linewidth=0.9,
+            alpha=0.86,
+            label=region,
+            zorder=3,
+        )
+
+    ai_median = city["ai"].median()
+    innovation_median = city["innovation"].median()
+    ax.axvline(ai_median, color="#64748B", linestyle="--", linewidth=1.0, zorder=2)
+    ax.axhline(innovation_median, color="#64748B", linestyle="--", linewidth=1.0, zorder=2)
+    ax.text(ai_median, ax.get_ylim()[1], "AI中位数", ha="right", va="top", fontsize=8.8, color="#475569")
+    ax.text(ax.get_xlim()[1], innovation_median, "创新支撑中位数", ha="right", va="bottom", fontsize=8.8, color="#475569")
+
+    label_cities = {"深圳市", "广州市", "珠海市", "东莞市", "韶关市", "湛江市", "汕头市"}
+    for _, row in city[city["city_name"].isin(label_cities)].iterrows():
+        ax.annotate(
+            row["city_name"].replace("市", ""),
+            (row["ai"], row["innovation"]),
+            xytext=(5, 5),
+            textcoords="offset points",
+            fontsize=8.8,
+            color="#102A43",
+        )
+
+    ax.set_xlabel("AI产业集聚代理指标均值")
+    ax.set_ylabel("创新支撑环境指数均值")
+    ax.set_title("城市AI集聚与创新支撑二维分布", pad=13, color="#102A43", fontweight="bold")
+    ax.legend(
+        title="区域",
+        frameon=True,
+        facecolor="white",
+        edgecolor="#D9E2EC",
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.12),
+        ncol=4,
+    )
+    ax.text(
+        0.02,
+        0.03,
+        "气泡大小表示协调发展参照指标均值",
+        transform=ax.transAxes,
+        fontsize=9,
+        color="#475569",
+        bbox={"boxstyle": "round,pad=0.30", "facecolor": "white", "edgecolor": "#E2E8F0", "alpha": 0.94},
+    )
+    polish_axes(ax)
+    save_figure(fig, out_path)
+
+
+def plot_region_multimetric_comparison(regional: pd.DataFrame, out_path: Path) -> None:
+    """Draw grouped bars for regional heterogeneity."""
+    order = ["珠三角", "粤东", "粤西", "粤北"]
+    regional = regional.set_index("region_group").loc[order].reset_index()
+    metrics = [
+        ("ai_mean", "AI集聚"),
+        ("neighboring_ai_exposure_mean", "邻近AI暴露"),
+        ("innovation_support_mean", "创新支撑"),
+        ("coordination_mean", "协调发展"),
+    ]
+    x = np.arange(len(order))
+    width = 0.18
+    colors = [PRIMARY, ACCENT, "#2F855A", DEEP_RED]
+
+    fig, ax = plt.subplots(figsize=(8.45, 4.95))
+    for idx, ((col, label), color) in enumerate(zip(metrics, colors)):
+        offset = (idx - 1.5) * width
+        bars = ax.bar(
+            x + offset,
+            regional[col],
+            width=width,
+            label=label,
+            color=color,
+            alpha=0.90,
+            edgecolor="white",
+            linewidth=0.7,
+            zorder=3,
+        )
+        for bar in bars:
+            value = bar.get_height()
+            va = "bottom" if value >= 0 else "top"
+            dy = 0.018 if value >= 0 else -0.018
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                value + dy,
+                f"{value:.2f}",
+                ha="center",
+                va=va,
+                fontsize=8.4,
+                color="#263238",
+            )
+
+    ax.axhline(0, color="#334155", linewidth=0.8)
+    ax.set_xticks(x)
+    ax.set_xticklabels(order)
+    ax.set_ylabel("指标均值")
+    ax.set_title("广东四大区域多指标对比", pad=13, color="#102A43", fontweight="bold")
+    ax.legend(frameon=True, facecolor="white", edgecolor="#D9E2EC", ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.13))
+    polish_axes(ax)
+    save_figure(fig, out_path)
+
+
+def plot_innovation_weight_structure(report: pd.DataFrame, out_path: Path) -> None:
+    """Visualize entropy weights of the innovation-support system."""
+    name_map = {
+        "entropy_weight_fiscal_intensity_ratio": "财政强度",
+        "entropy_weight_financial_depth_ratio": "金融深度",
+        "entropy_weight_fdi_gdp_ratio": "开放强度",
+        "entropy_weight_retail_per_capita": "人均消费",
+        "entropy_weight_service_openness_proxy": "服务开放",
+    }
+    sub = report[report["metric"].isin(name_map)].copy()
+    sub["label"] = sub["metric"].map(name_map)
+    sub["value"] = sub["value"].astype(float)
+    sub = sub.sort_values("value", ascending=True)
+
+    fig, ax = plt.subplots(figsize=(6.9, 4.6))
+    bars = ax.barh(
+        sub["label"],
+        sub["value"],
+        color=[PRIMARY, DEEP_BLUE, "#2F855A", ACCENT, DEEP_RED][: len(sub)],
+        alpha=0.90,
+        edgecolor="white",
+        linewidth=0.8,
+        zorder=3,
+    )
+    for bar in bars:
+        value = bar.get_width()
+        ax.text(value + 0.006, bar.get_y() + bar.get_height() / 2, f"{value:.3f}", va="center", fontsize=9)
+    ax.set_xlim(0, max(sub["value"]) + 0.08)
+    ax.set_xlabel("熵值权重")
+    ax.set_title("创新支撑环境指标权重结构", pad=13, color="#102A43", fontweight="bold")
+    polish_axes(ax)
+    save_figure(fig, out_path)
+
+
+def plot_sdm_dynamic_comparison(
+    sync_impacts: pd.DataFrame,
+    lagged_impacts: pd.DataFrame,
+    out_path: Path,
+) -> None:
+    """Compare synchronous and lagged SDM impact decomposition."""
+    sync = sync_impacts[sync_impacts["matrix"] == "inverse_distance"].copy()
+    sync_rows = pd.DataFrame(
+        {
+            "effect_type": ["direct", "indirect", "total"],
+            "同期效应": [
+                float(sync["python_estimate_direct"].iloc[0]),
+                float(sync["python_estimate_indirect"].iloc[0]),
+                float(sync["python_estimate_total"].iloc[0]),
+            ],
+        }
+    )
+    lag = lagged_impacts[lagged_impacts["matrix"] == "inverse_distance"][["effect_type", "estimate"]].copy()
+    lag = lag.rename(columns={"estimate": "滞后一期效应"})
+    plot_df = sync_rows.merge(lag, on="effect_type", how="left")
+    label_map = {"direct": "直接效应", "indirect": "间接效应", "total": "总效应"}
+    plot_df["label"] = plot_df["effect_type"].map(label_map)
+
+    x = np.arange(len(plot_df))
+    width = 0.32
+    fig, ax = plt.subplots(figsize=(7.5, 4.85))
+    b1 = ax.bar(x - width / 2, plot_df["同期效应"], width, label="同期模型", color=DEEP_RED, alpha=0.88, edgecolor="white")
+    b2 = ax.bar(x + width / 2, plot_df["滞后一期效应"], width, label="滞后一期模型", color=PRIMARY, alpha=0.88, edgecolor="white")
+    for bars in (b1, b2):
+        for bar in bars:
+            value = bar.get_height()
+            va = "bottom" if value >= 0 else "top"
+            dy = 0.025 if value >= 0 else -0.025
+            ax.text(bar.get_x() + bar.get_width() / 2, value + dy, f"{value:.2f}", ha="center", va=va, fontsize=9)
+    ax.axhline(0, color="#334155", linewidth=0.9)
+    ax.set_xticks(x)
+    ax.set_xticklabels(plot_df["label"])
+    ax.set_ylabel("效应估计值")
+    ax.set_title("AI集聚空间效应的同期虹吸与滞后扩散", pad=13, color="#102A43", fontweight="bold")
+    ax.legend(frameon=True, facecolor="white", edgecolor="#D9E2EC", loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2)
+    polish_axes(ax)
+    save_figure(fig, out_path)
+
+
 def main() -> None:
     configure_plot_style()
     PICTURE_DIR.mkdir(parents=True, exist_ok=True)
     moran = pd.read_csv(ANALYSIS_DIR / "moran_global_results.csv", encoding="utf-8-sig")
     lisa = pd.read_csv(ANALYSIS_DIR / "lisa_local_results.csv", encoding="utf-8-sig")
     panel = pd.read_csv(ANALYSIS_DIR / "panel_21city_2018_2023_completed.csv", encoding="utf-8-sig")
+    regional = pd.read_csv(ANALYSIS_DIR / "regional_heterogeneity_summary.csv", encoding="utf-8-sig")
+    report = pd.read_csv(ANALYSIS_DIR / "panel_21city_2018_2023_completion_report.csv", encoding="utf-8-sig")
+    sdm = pd.read_csv(ANALYSIS_DIR / "sdm_ai_effects_summary.csv", encoding="utf-8-sig")
+    lagged = pd.read_csv(ANALYSIS_DIR / "lagged_ai_sdm_impacts.csv", encoding="utf-8-sig")
 
     plot_moran_trend(moran, "ai_full_panel_index", "AI产业集聚全局Moran's I", PICTURE_DIR / "fig_moran_ai_trend.png")
     plot_moran_trend(
@@ -289,6 +502,10 @@ def main() -> None:
     )
     plot_lisa_scatter(lisa, PICTURE_DIR / "fig_lisa_ai_2023_scatter.png")
     plot_text_proxy_validation(panel, PICTURE_DIR / "fig_text_proxy_validation.png")
+    plot_city_ai_support_bubble(panel, PICTURE_DIR / "fig_city_ai_support_bubble.png")
+    plot_region_multimetric_comparison(regional, PICTURE_DIR / "fig_region_multimetric_comparison.png")
+    plot_innovation_weight_structure(report, PICTURE_DIR / "fig_innovation_weight_structure.png")
+    plot_sdm_dynamic_comparison(sdm, lagged, PICTURE_DIR / "fig_sdm_dynamic_comparison.png")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.font_manager as fm
+import matplotlib.pyplot as plt
 from scipy.optimize import minimize_scalar
 
 
@@ -26,8 +31,11 @@ SPATIAL_PANEL_PATH = ANALYSIS_DIR / "panel_21city_2018_2023_spatial_ready.csv"
 STATA_PANEL_PATH = STATA_DIR / "panel_sdm_stata.csv"
 REGIONAL_SUMMARY_CSV = ANALYSIS_DIR / "regional_heterogeneity_summary.csv"
 LAGGED_IMPACTS_CSV = ANALYSIS_DIR / "lagged_ai_sdm_impacts.csv"
+PY_IMPACTS_CSV = ANALYSIS_DIR / "python_panel_sdm_impacts.csv"
 REGIONAL_TABLE_TEX = TABLE_DIR / "table_regional_heterogeneity_summary.tex"
 LAGGED_TABLE_TEX = TABLE_DIR / "table_lagged_ai_endogeneity.tex"
+FIG_REGIONAL_HETEROGENEITY = PROJECT_ROOT / "picture" / "fig_regional_heterogeneity_summary.png"
+FIG_SDM_DYNAMIC_COMPARISON = PROJECT_ROOT / "picture" / "fig_sdm_dynamic_comparison.png"
 
 WEIGHT_FILES = {
     "inverse_distance": STATA_DIR / "w_inverse_distance_stata.csv",
@@ -42,6 +50,7 @@ MATRIX_LABELS = {
 }
 
 REGION_ORDER = ["珠三角", "粤东", "粤西", "粤北"]
+REGION_COLORS = ["#174A7C", "#2F855A", "#D9822B", "#7C3AED"]
 Y_COL = "coord"
 X_COLS = ["lag_ai", "fiscal", "finance", "fdi", "retail_pc", "service"]
 RHO_BOUNDS = (-0.95, 0.95)
@@ -74,6 +83,39 @@ def fmt_coef(value: float, p_value: float | None = None) -> str:
     if pd.isna(value):
         return ""
     return f"{value:.4f}{stars(p_value) if p_value is not None else ''}"
+
+
+def configure_plot_style() -> None:
+    font_files = [
+        Path("C:/Windows/Fonts/msyh.ttc"),
+        Path("C:/Windows/Fonts/msyhbd.ttc"),
+        Path("C:/Windows/Fonts/simhei.ttf"),
+        Path("C:/Windows/Fonts/simsun.ttc"),
+    ]
+    for font_file in font_files:
+        if font_file.exists():
+            try:
+                fm.fontManager.addfont(str(font_file))
+            except Exception:
+                pass
+    preferred = ["Microsoft YaHei", "SimHei", "SimSun", "Noto Sans CJK SC"]
+    available = {font.name for font in fm.fontManager.ttflist}
+    selected = next((font for font in preferred if font in available), "DejaVu Sans")
+    plt.rcParams.update(
+        {
+            "font.family": selected,
+            "font.sans-serif": [selected],
+            "axes.unicode_minus": False,
+            "figure.dpi": 180,
+            "savefig.dpi": 360,
+            "font.size": 11,
+            "axes.titlesize": 13,
+            "axes.labelsize": 10,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
+        }
+    )
 
 
 def normal_pvalue(z_value: float) -> float:
@@ -356,6 +398,115 @@ def write_lagged_table(impacts: pd.DataFrame) -> None:
     LAGGED_TABLE_TEX.write_text("\n".join(lines), encoding="utf-8")
 
 
+def plot_regional_heterogeneity(summary: pd.DataFrame) -> None:
+    configure_plot_style()
+    FIG_REGIONAL_HETEROGENEITY.parent.mkdir(parents=True, exist_ok=True)
+    metrics = [
+        ("ai_mean", "AI集聚"),
+        ("neighboring_ai_exposure_mean", "邻近AI暴露"),
+        ("innovation_support_mean", "创新支撑"),
+        ("coordination_mean", "协调发展"),
+    ]
+    fig, axes = plt.subplots(1, 4, figsize=(12.2, 4.8), sharey=True)
+    y = np.arange(len(summary))
+    for ax, (col, title) in zip(axes, metrics):
+        ax.barh(
+            y,
+            summary[col],
+            color=REGION_COLORS,
+            edgecolor="white",
+            linewidth=0.8,
+            height=0.62,
+        )
+        ax.axvline(0, color="#55606E", linewidth=0.8, linestyle="--")
+        for idx, value in enumerate(summary[col]):
+            ax.text(
+                value + (0.025 if value >= 0 else -0.025),
+                idx,
+                f"{value:.2f}",
+                va="center",
+                ha="left" if value >= 0 else "right",
+                fontsize=8.5,
+                color="#263238",
+            )
+        ax.set_title(title, color="#102A43", pad=8, fontweight="bold")
+        ax.grid(axis="x", linestyle="--", linewidth=0.6, alpha=0.32)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_color("#CBD5E1")
+        ax.spines["bottom"].set_color("#CBD5E1")
+    axes[0].set_yticks(y)
+    axes[0].set_yticklabels(summary["region_group"])
+    axes[0].invert_yaxis()
+    fig.suptitle("广东四大区域AI集聚、邻近暴露与协调发展差异", fontsize=14, fontweight="bold", color="#102A43")
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    fig.savefig(FIG_REGIONAL_HETEROGENEITY, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_sdm_dynamic_comparison(lagged_impacts: pd.DataFrame) -> None:
+    configure_plot_style()
+    FIG_SDM_DYNAMIC_COMPARISON.parent.mkdir(parents=True, exist_ok=True)
+    contemporaneous = pd.read_csv(PY_IMPACTS_CSV, encoding="utf-8-sig")
+    contemporaneous = contemporaneous[contemporaneous["variable"] == "ai"].copy()
+    contemporaneous["matrix_label"] = contemporaneous["matrix"].map(MATRIX_LABELS)
+    contemporaneous["period_type"] = "同期AI"
+    lagged = lagged_impacts.copy()
+    lagged["period_type"] = "滞后一期AI"
+    keep_cols = ["matrix", "matrix_label", "effect_type", "estimate", "p_value", "period_type"]
+    combined = pd.concat([contemporaneous[keep_cols], lagged[keep_cols]], ignore_index=True)
+
+    effect_labels = {"direct": "直接效应", "indirect": "间接效应", "total": "总效应"}
+    matrix_order = list(WEIGHT_FILES)
+    matrix_labels = [MATRIX_LABELS[m] for m in matrix_order]
+    colors = {"同期AI": "#B83227", "滞后一期AI": "#174A7C"}
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.2, 4.8), sharey=False)
+    x = np.arange(len(matrix_order))
+    width = 0.34
+    for ax, effect in zip(axes, ["direct", "indirect", "total"]):
+        sub = combined[combined["effect_type"] == effect]
+        for offset, period in [(-width / 2, "同期AI"), (width / 2, "滞后一期AI")]:
+            vals = []
+            ps = []
+            for matrix in matrix_order:
+                row = sub[(sub["matrix"] == matrix) & (sub["period_type"] == period)].iloc[0]
+                vals.append(row["estimate"])
+                ps.append(row["p_value"])
+            bars = ax.bar(
+                x + offset,
+                vals,
+                width=width,
+                color=colors[period],
+                alpha=0.88,
+                edgecolor="white",
+                linewidth=0.8,
+                label=period if effect == "direct" else None,
+            )
+            for bar, value, p_value in zip(bars, vals, ps):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    value + (0.035 if value >= 0 else -0.055),
+                    f"{value:.2f}{stars(p_value)}",
+                    ha="center",
+                    va="bottom" if value >= 0 else "top",
+                    fontsize=8,
+                    color="#263238",
+                )
+        ax.axhline(0, color="#55606E", linewidth=0.8)
+        ax.set_title(effect_labels[effect], color="#102A43", pad=8, fontweight="bold")
+        ax.set_xticks(x)
+        ax.set_xticklabels(matrix_labels, rotation=18, ha="right")
+        ax.grid(axis="y", linestyle="--", linewidth=0.6, alpha=0.30)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+    axes[0].legend(frameon=False, loc="upper left")
+    fig.suptitle("同期虹吸与滞后扩散：AI产业集聚SDM效应对比", fontsize=14, fontweight="bold", color="#102A43")
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    fig.savefig(FIG_SDM_DYNAMIC_COMPARISON, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
     TABLE_DIR.mkdir(parents=True, exist_ok=True)
@@ -363,11 +514,15 @@ def main() -> None:
     lagged_impacts = build_lagged_impacts()
     write_regional_table(regional_summary)
     write_lagged_table(lagged_impacts)
+    plot_regional_heterogeneity(regional_summary)
+    plot_sdm_dynamic_comparison(lagged_impacts)
 
     print(f"Wrote {REGIONAL_SUMMARY_CSV}")
     print(f"Wrote {LAGGED_IMPACTS_CSV}")
     print(f"Wrote {REGIONAL_TABLE_TEX}")
     print(f"Wrote {LAGGED_TABLE_TEX}")
+    print(f"Wrote {FIG_REGIONAL_HETEROGENEITY}")
+    print(f"Wrote {FIG_SDM_DYNAMIC_COMPARISON}")
     print(regional_summary.to_string(index=False))
     print(lagged_impacts[lagged_impacts['effect_type'].isin(['direct', 'indirect', 'total'])].to_string(index=False))
 
