@@ -25,6 +25,9 @@ DEEP_RED = "#B83227"
 DEEP_BLUE = "#1F6F9F"
 MUTED = "#6B7280"
 GRID = "#D8DEE9"
+NATURE_RED = "#E64B35"
+NATURE_GREEN = "#00A087"
+NATURE_BLUE = "#3C5488"
 
 
 def _select_cjk_font() -> str:
@@ -68,6 +71,8 @@ def configure_plot_style() -> None:
             "axes.edgecolor": "#334155",
             "axes.linewidth": 0.9,
             "savefig.facecolor": "white",
+            "pdf.fonttype": 42,
+            "ps.fonttype": 42,
         }
     )
 
@@ -83,6 +88,8 @@ def polish_axes(ax: plt.Axes) -> None:
 def save_figure(fig: plt.Figure, out_path: Path) -> None:
     fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight", dpi=360)
+    if out_path.suffix.lower() == ".png":
+        fig.savefig(out_path.with_suffix(".pdf"), bbox_inches="tight")
     plt.close(fig)
 
 
@@ -438,6 +445,39 @@ def plot_innovation_weight_structure(report: pd.DataFrame, out_path: Path) -> No
     save_figure(fig, out_path)
 
 
+def plot_core_correlation_heatmap(panel: pd.DataFrame, out_path: Path) -> None:
+    """Plot a compact Pearson-correlation heatmap for core variables."""
+    cols = [
+        ("ai_full_panel_index", "AI集聚"),
+        ("innovation_support_index", "创新支撑"),
+        ("coordination_reference_index", "协调发展"),
+        ("gdp_per_capita", "人均GDP"),
+        ("financial_depth_ratio", "金融深度"),
+        ("tertiary_industry_share", "三产占比"),
+    ]
+    use_cols = [col for col, _ in cols]
+    labels = [label for _, label in cols]
+    corr = panel[use_cols].astype(float).corr().to_numpy()
+
+    fig, ax = plt.subplots(figsize=(6.8, 5.55))
+    im = ax.imshow(corr, cmap="RdBu_r", vmin=-1, vmax=1)
+    ax.set_xticks(np.arange(len(labels)))
+    ax.set_yticks(np.arange(len(labels)))
+    ax.set_xticklabels(labels, rotation=35, ha="right")
+    ax.set_yticklabels(labels)
+    for i in range(corr.shape[0]):
+        for j in range(corr.shape[1]):
+            color = "white" if abs(corr[i, j]) > 0.55 else "#0F172A"
+            ax.text(j, i, f"{corr[i, j]:.2f}", ha="center", va="center", fontsize=8.8, color=color)
+    ax.set_title("核心变量Pearson相关性热力图", pad=12, color="#102A43", fontweight="bold")
+    cbar = fig.colorbar(im, ax=ax, shrink=0.82)
+    cbar.set_label("相关系数")
+    ax.tick_params(length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    save_figure(fig, out_path)
+
+
 def plot_sdm_dynamic_comparison(
     sync_impacts: pd.DataFrame,
     lagged_impacts: pd.DataFrame,
@@ -482,6 +522,112 @@ def plot_sdm_dynamic_comparison(
     save_figure(fig, out_path)
 
 
+def _impact_row(frame: pd.DataFrame, effect_type: str) -> pd.Series:
+    row = frame[frame["effect_type"] == effect_type]
+    if row.empty:
+        raise ValueError(f"Missing SDM impact row: {effect_type}")
+    return row.iloc[0]
+
+
+def plot_sdm_effect_forest(
+    sync_impacts: pd.DataFrame,
+    lagged_impacts: pd.DataFrame,
+    out_path: Path,
+) -> None:
+    """Draw a forest plot for synchronous siphon and lagged empowerment effects."""
+    sync = sync_impacts[
+        (sync_impacts["matrix"] == "inverse_distance")
+        & (sync_impacts.get("variable", "ai") == "ai")
+    ].copy()
+    lagged = lagged_impacts[lagged_impacts["matrix"] == "inverse_distance"].copy()
+
+    rows = []
+    specs = [
+        ("同期直接效应", sync, "direct", NATURE_BLUE, "s"),
+        ("同期间接效应（虹吸）", sync, "indirect", NATURE_RED, "o"),
+        ("同期总效应", sync, "total", NATURE_RED, "D"),
+        ("滞后一期直接效应", lagged, "direct", NATURE_GREEN, "s"),
+        ("滞后一期间接效应（赋能）", lagged, "indirect", NATURE_GREEN, "o"),
+        ("滞后一期总效应", lagged, "total", NATURE_GREEN, "D"),
+    ]
+    for label, frame, effect_type, color, marker in specs:
+        row = _impact_row(frame, effect_type)
+        estimate = float(row["estimate"])
+        low = float(row["ci95_low"]) if "ci95_low" in row.index else estimate - 1.96 * float(row["std_err_sim"])
+        high = float(row["ci95_high"]) if "ci95_high" in row.index else estimate + 1.96 * float(row["std_err_sim"])
+        p_value = float(row["p_value"]) if "p_value" in row.index else np.nan
+        rows.append(
+            {
+                "label": label,
+                "estimate": estimate,
+                "low": low,
+                "high": high,
+                "color": color,
+                "marker": marker,
+                "stars": significance_marker(p_value),
+            }
+        )
+
+    plot_df = pd.DataFrame(rows)
+    y = np.arange(len(plot_df))[::-1]
+    fig, ax = plt.subplots(figsize=(8.4, 5.25))
+    ax.axvline(0, color="#111827", linestyle=(0, (4, 4)), linewidth=1.1, alpha=0.75, zorder=1)
+    ax.axhspan(2.5, 5.5, color=NATURE_RED, alpha=0.055, zorder=0)
+    ax.axhspan(-0.5, 2.5, color=NATURE_GREEN, alpha=0.055, zorder=0)
+
+    for idx, row in plot_df.iterrows():
+        yy = y[idx]
+        ax.errorbar(
+            row["estimate"],
+            yy,
+            xerr=[[row["estimate"] - row["low"]], [row["high"] - row["estimate"]]],
+            fmt=row["marker"],
+            color=row["color"],
+            ecolor=row["color"],
+            markersize=8.2,
+            markeredgecolor="white",
+            markeredgewidth=1.2,
+            elinewidth=2.2,
+            capsize=4.2,
+            zorder=4,
+        )
+        text_x = row["high"] + 0.055 if row["estimate"] >= 0 else row["low"] - 0.055
+        ha = "left" if row["estimate"] >= 0 else "right"
+        ax.text(text_x, yy, f"{row['estimate']:.2f}{row['stars']}", va="center", ha=ha, fontsize=9.4, color="#1F2937")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(plot_df["label"])
+    xmin = float(plot_df["low"].min())
+    xmax = float(plot_df["high"].max())
+    pad = max((xmax - xmin) * 0.16, 0.18)
+    ax.set_xlim(xmin - pad, xmax + pad)
+    ax.set_xlabel("偏微分效应估计值（点）及95%置信区间（线）")
+    ax.set_title("AI集聚空间效应森林图：同期虹吸与滞后赋能", pad=14, color="#102A43", fontweight="bold")
+    ax.text(
+        0.02,
+        0.96,
+        "同期",
+        transform=ax.transAxes,
+        color=NATURE_RED,
+        fontsize=10,
+        fontweight="bold",
+        va="top",
+    )
+    ax.text(
+        0.02,
+        0.42,
+        "滞后一期",
+        transform=ax.transAxes,
+        color=NATURE_GREEN,
+        fontsize=10,
+        fontweight="bold",
+        va="top",
+    )
+    polish_axes(ax)
+    ax.grid(axis="y", visible=False)
+    save_figure(fig, out_path)
+
+
 def main() -> None:
     configure_plot_style()
     PICTURE_DIR.mkdir(parents=True, exist_ok=True)
@@ -491,6 +637,7 @@ def main() -> None:
     regional = pd.read_csv(ANALYSIS_DIR / "regional_heterogeneity_summary.csv", encoding="utf-8-sig")
     report = pd.read_csv(ANALYSIS_DIR / "panel_21city_2018_2023_completion_report.csv", encoding="utf-8-sig")
     sdm = pd.read_csv(ANALYSIS_DIR / "sdm_ai_effects_summary.csv", encoding="utf-8-sig")
+    sdm_impacts = pd.read_csv(ANALYSIS_DIR / "python_panel_sdm_impacts.csv", encoding="utf-8-sig")
     lagged = pd.read_csv(ANALYSIS_DIR / "lagged_ai_sdm_impacts.csv", encoding="utf-8-sig")
 
     plot_moran_trend(moran, "ai_full_panel_index", "AI产业集聚全局Moran's I", PICTURE_DIR / "fig_moran_ai_trend.png")
@@ -505,7 +652,9 @@ def main() -> None:
     plot_city_ai_support_bubble(panel, PICTURE_DIR / "fig_city_ai_support_bubble.png")
     plot_region_multimetric_comparison(regional, PICTURE_DIR / "fig_region_multimetric_comparison.png")
     plot_innovation_weight_structure(report, PICTURE_DIR / "fig_innovation_weight_structure.png")
+    plot_core_correlation_heatmap(panel, PICTURE_DIR / "fig_core_variable_correlation_heatmap.png")
     plot_sdm_dynamic_comparison(sdm, lagged, PICTURE_DIR / "fig_sdm_dynamic_comparison.png")
+    plot_sdm_effect_forest(sdm_impacts, lagged, PICTURE_DIR / "fig_sdm_effect_forest.png")
 
 
 if __name__ == "__main__":
