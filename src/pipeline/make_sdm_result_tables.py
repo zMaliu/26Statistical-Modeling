@@ -25,6 +25,7 @@ MATRIX_LABELS = {
     "knn4": "4近邻矩阵",
     "geo_economic": "地理-经济嵌套矩阵",
 }
+MATRIX_ORDER = ["inverse_distance", "knn4", "geo_economic"]
 
 
 def stars(p: float) -> str:
@@ -98,6 +99,9 @@ def make_model_comparison() -> pd.DataFrame:
             }
         )
     out = pd.DataFrame(rows)
+    out["matrix"] = pd.Categorical(out["matrix"], categories=MATRIX_ORDER, ordered=True)
+    out = out.sort_values("matrix").reset_index(drop=True)
+    out["matrix"] = out["matrix"].astype(str)
     out.to_csv(MODEL_COMPARISON_CSV, index=False, encoding="utf-8-sig")
     return out
 
@@ -140,16 +144,20 @@ def write_latex_table(df: pd.DataFrame, path: Path, table_type: str) -> None:
             r"\begin{table}[htbp]",
             r"\centering",
             r"\begin{threeparttable}",
-            r"\caption{空间面板模型核心系数比较}",
-            r"\begin{tabular}{lccc}",
+            r"\caption{空间模型设定与空间矩阵信息准则比较}",
+            r"\label{tab:model-comparison}",
+            r"{\compacttableformat",
+            r"\begin{tabular}{lccccc}",
             r"\toprule",
-            r"空间矩阵 & 本地AI系数 & 空间滞后AI系数 & 空间因变量系数 \\",
+            r"空间矩阵 & LogLik & AIC & BIC & $WAI$ & $WCoord$ \\",
             r"\midrule",
         ]
         for _, row in df.iterrows():
             lines.append(
                 f"{row['matrix_label']} & "
-                f"{fmt_coef(row['ai_local'], row['ai_local_p'])} & "
+                f"{row['loglik']:.4f} & "
+                f"{row['aic']:.4f} & "
+                f"{row['bic']:.4f} & "
                 f"{fmt_coef(row['w_ai'], row['w_ai_p'])} & "
                 f"{fmt_coef(row['rho'], row['rho_p'])} " + r"\\"
             )
@@ -157,9 +165,10 @@ def write_latex_table(df: pd.DataFrame, path: Path, table_type: str) -> None:
             [
                 r"\bottomrule",
                 r"\end{tabular}",
+                r"}",
                 r"\begin{tablenotes}",
                 r"\footnotesize",
-                r"\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著；空间滞后AI系数用于观察邻近城市AI产业集聚对本市协调发展参照指标的关联方向。",
+                r"\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著。LogLik越大、AIC和BIC越小，表示模型信息准则表现越优；$WAI$和$WCoord$分别表示AI产业集聚与协调发展参照指标的空间滞后项系数。",
                 r"\end{tablenotes}",
                 r"\end{threeparttable}",
                 r"\end{table}",

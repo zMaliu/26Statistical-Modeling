@@ -1,19 +1,22 @@
 \begin{table}[htbp]
 \centering
 \begin{threeparttable}
-\caption{空间面板模型核心系数比较}
-\begin{tabular}{lccc}
+\caption{空间模型设定与空间矩阵信息准则比较}
+\label{tab:model-comparison}
+{\compacttableformat
+\begin{tabular}{lccccc}
 \toprule
-空间矩阵 & 本地AI系数 & 空间滞后AI系数 & 空间因变量系数 \\
+空间矩阵 & LogLik & AIC & BIC & $WAI$ & $WCoord$ \\
 \midrule
-地理-经济嵌套矩阵 & 0.1005** & -0.3988* & 0.3437** \\
-地理反距离矩阵 & 0.0350 & -0.9185*** & 0.2772* \\
-4近邻矩阵 & 0.1165** & -0.0860 & 0.4876*** \\
+地理反距离矩阵 & 226.7865 & -427.5729 & -390.7013 & -0.9185*** & 0.2772* \\
+4近邻矩阵 & 218.2864 & -410.5729 & -373.7012 & -0.0860 & 0.4876*** \\
+地理—经济嵌套矩阵 & 225.3829 & -424.7658 & -387.8942 & -0.3988* & 0.3437** \\
 \bottomrule
 \end{tabular}
+}
 \begin{tablenotes}
 \footnotesize
-\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著；空间滞后AI系数用于观察邻近城市AI产业集聚对本市协调发展参照指标的关联方向。
+\item 注：*、**、***分别表示在10\%、5\%、1\%水平显著。LogLik越大、AIC和BIC越小，表示模型信息准则表现越优；$WAI$和$WCoord$分别表示AI产业集聚与协调发展参照指标的空间滞后项系数。
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
