@@ -116,21 +116,21 @@ def draw_lisa_map() -> None:
     gdf.boundary.plot(ax=ax, color="#7B8FA6", linewidth=0.55, zorder=3)
 
     label_offsets = {
-        "广州市": (0.00, 0.08),
-        "佛山市": (-0.05, -0.04),
-        "东莞市": (0.03, -0.05),
-        "深圳市": (0.05, -0.06),
-        "中山市": (-0.02, -0.05),
-        "珠海市": (-0.02, -0.07),
-        "惠州市": (0.03, 0.04),
-        "清远市": (0.00, 0.06),
-        "河源市": (0.05, 0.04),
-        "江门市": (-0.03, -0.05),
+        "广州市": (-0.10, 0.11),
+        "佛山市": (-0.12, -0.08),
+        "东莞市": (0.08, -0.09),
+        "深圳市": (0.10, -0.08),
+        "中山市": (-0.06, -0.09),
+        "珠海市": (0.06, -0.10),
+        "惠州市": (0.10, 0.08),
+        "清远市": (0.00, 0.08),
+        "河源市": (0.10, 0.06),
+        "江门市": (-0.08, -0.09),
     }
     marker_styles = {
-        "高-高集聚": ("^", "#0F172A", 105),
-        "低-高邻近": ("o", "#0F172A", 82),
-        "高值不显著": ("P", "#0F172A", 76),
+        "高-高集聚": ("^", "#0F172A", 58),
+        "低-高邻近": ("o", "#0F172A", 46),
+        "高值不显著": ("P", "#0F172A", 46),
     }
 
     for _, row in gdf.iterrows():
@@ -145,9 +145,10 @@ def draw_lisa_map() -> None:
             city.replace("市", ""),
             ha="center",
             va="center",
-            fontsize=9.6 if is_focus else 8.4,
+            fontsize=8.8 if is_focus else 7.8,
             color="#111827" if is_focus else "#64748B",
             fontweight="bold" if is_focus else "normal",
+            bbox={"boxstyle": "round,pad=0.10", "facecolor": "white", "edgecolor": "none", "alpha": 0.76} if is_focus else None,
             zorder=5,
         )
         if is_focus:
@@ -168,9 +169,9 @@ def draw_lisa_map() -> None:
         Patch(facecolor=fill_colors["低-高邻近"], edgecolor=edge_color, label="低-高邻近"),
         Patch(facecolor=fill_colors["高值不显著"], edgecolor=edge_color, label="高值不显著"),
         Patch(facecolor=fill_colors["不显著"], edgecolor=edge_color, label="不显著"),
-        Line2D([0], [0], marker="^", color="w", label="高-高符号", markerfacecolor="#0F172A", markeredgecolor="white", markersize=9),
-        Line2D([0], [0], marker="o", color="w", label="低-高符号", markerfacecolor="#0F172A", markeredgecolor="white", markersize=8),
-        Line2D([0], [0], marker="P", color="w", label="高值不显著符号", markerfacecolor="#0F172A", markeredgecolor="white", markersize=8),
+        Line2D([0], [0], marker="^", color="w", label="高-高符号", markerfacecolor="#0F172A", markeredgecolor="white", markersize=7),
+        Line2D([0], [0], marker="o", color="w", label="低-高符号", markerfacecolor="#0F172A", markeredgecolor="white", markersize=6),
+        Line2D([0], [0], marker="P", color="w", label="高值不显著符号", markerfacecolor="#0F172A", markeredgecolor="white", markersize=6),
     ]
     legend = ax.legend(
         handles=legend_handles,

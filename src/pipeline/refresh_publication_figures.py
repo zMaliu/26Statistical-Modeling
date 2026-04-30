@@ -17,6 +17,7 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ANALYSIS_DIR = PROJECT_ROOT / "data" / "processed" / "analysis_ready"
+SPATIAL_DIR = PROJECT_ROOT / "data" / "processed" / "spatial"
 PICTURE_DIR = PROJECT_ROOT / "picture"
 
 PRIMARY = "#174A7C"
@@ -78,15 +79,16 @@ def configure_plot_style() -> None:
 
 
 def polish_axes(ax: plt.Axes) -> None:
-    ax.set_facecolor("#FBFCFE")
+    ax.set_facecolor("white")
     ax.grid(axis="both", alpha=0.42, linestyle="--", linewidth=0.65, color=GRID)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.tick_params(colors="#263238", length=3.5, width=0.8)
 
 
-def save_figure(fig: plt.Figure, out_path: Path) -> None:
-    fig.tight_layout()
+def save_figure(fig: plt.Figure, out_path: Path, tight: bool = True) -> None:
+    if tight:
+        fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight", dpi=360)
     if out_path.suffix.lower() == ".png":
         fig.savefig(out_path.with_suffix(".pdf"), bbox_inches="tight")
@@ -150,7 +152,7 @@ def plot_moran_trend(df: pd.DataFrame, variable: str, title: str, out_path: Path
     y_max = sub["moran_i"].max() + 0.040
     ax.set_ylim(y_min, y_max)
     polish_axes(ax)
-    save_figure(fig, out_path)
+    save_figure(fig, out_path, tight=False)
 
 
 def plot_lisa_scatter(df: pd.DataFrame, out_path: Path) -> None:
@@ -230,9 +232,18 @@ def plot_text_proxy_validation(panel: pd.DataFrame, out_path: Path) -> None:
         return
     x = sub["ai_text_index_original"].astype(float).to_numpy()
     y = sub["ai_full_panel_index"].astype(float).to_numpy()
-    coef = np.polyfit(x, y, deg=1)
+    X = np.column_stack([np.ones_like(x), x])
+    beta = np.linalg.lstsq(X, y, rcond=None)[0]
     xs = np.linspace(x.min(), x.max(), 100)
-    ys = coef[0] * xs + coef[1]
+    Xs = np.column_stack([np.ones_like(xs), xs])
+    ys = Xs @ beta
+    resid = y - X @ beta
+    dof = max(len(x) - 2, 1)
+    mse = float((resid @ resid) / dof)
+    xtx_inv = np.linalg.inv(X.T @ X)
+    se_fit = np.sqrt(np.sum((Xs @ xtx_inv) * Xs, axis=1) * mse)
+    ci_low = ys - 1.96 * se_fit
+    ci_high = ys + 1.96 * se_fit
     r = np.corrcoef(x, y)[0, 1]
     n = len(sub)
     stats_path = ANALYSIS_DIR / "text_proxy_validation_stats.csv"
@@ -245,7 +256,8 @@ def plot_text_proxy_validation(panel: pd.DataFrame, out_path: Path) -> None:
         t = r * math.sqrt((n - 2) / (1 - r**2)) if abs(r) < 1 else np.nan
         p = math.erfc(abs(t) / math.sqrt(2)) if np.isfinite(t) else np.nan
 
-    fig, ax = plt.subplots(figsize=(7.0, 4.95))
+    fig, ax = plt.subplots(figsize=(7.1, 5.0))
+
     regions = sorted(sub["region_group"].dropna().unique())
     palette = ["#174A7C", "#D9822B", "#2F855A", "#7C3AED"]
     for region, color in zip(regions, palette):
@@ -261,7 +273,8 @@ def plot_text_proxy_validation(panel: pd.DataFrame, out_path: Path) -> None:
             label=region,
             zorder=3,
         )
-    ax.plot(xs, ys, color="#2D3748", linewidth=2.0, linestyle="--", label="线性拟合", zorder=2)
+    ax.fill_between(xs, ci_low, ci_high, color="#475569", alpha=0.13, linewidth=0, label="95%置信带", zorder=1)
+    ax.plot(xs, ys, color="#2D3748", linewidth=2.1, linestyle="--", label="线性拟合", zorder=2)
     ax.text(
         0.04,
         0.96,
@@ -275,7 +288,182 @@ def plot_text_proxy_validation(panel: pd.DataFrame, out_path: Path) -> None:
     ax.set_xlabel("年报文本AI指数")
     ax.set_ylabel("官方统计AI代理指标")
     ax.set_title("文本挖掘指标与宏观代理指标的匹配验证", pad=13, color="#102A43", fontweight="bold")
-    ax.legend(frameon=True, facecolor="white", edgecolor="#D9E2EC", loc="best", borderpad=0.7)
+    ax.legend(
+        frameon=True,
+        facecolor="white",
+        edgecolor="#D9E2EC",
+        loc="lower right",
+        ncol=1,
+        borderpad=0.55,
+        labelspacing=0.35,
+        handlelength=1.4,
+    )
+    polish_axes(ax)
+    save_figure(fig, out_path)
+
+
+def plot_spatial_network_topology(
+    panel: pd.DataFrame,
+    coords: pd.DataFrame,
+    weights_long: pd.DataFrame,
+    out_path: Path,
+) -> None:
+    """Draw a compact geography-economy spatial weight network."""
+    city_stats = (
+        panel.groupby(["city_name", "region_group"], as_index=False)
+        .agg(
+            ai_mean=("ai_full_panel_index", "mean"),
+            gdp_pc=("gdp_per_capita", "mean"),
+        )
+        .merge(coords, on=["city_name", "region_group"], how="left")
+    )
+    city_stats = city_stats.dropna(subset=["longitude", "latitude", "gdp_pc"]).copy()
+    city_lookup = city_stats.set_index("city_name")
+
+    edges = []
+    eta = 1000.0
+    for origin, group in weights_long[weights_long["origin_city"] != weights_long["dest_city"]].groupby("origin_city"):
+        if origin not in city_lookup.index:
+            continue
+        origin_gdp = float(city_lookup.loc[origin, "gdp_pc"])
+        local_edges = []
+        for _, row in group.iterrows():
+            dest = row["dest_city"]
+            if dest not in city_lookup.index:
+                continue
+            dest_gdp = float(city_lookup.loc[dest, "gdp_pc"])
+            distance = float(row["distance_km"])
+            if distance <= 0:
+                continue
+            geo_econ_weight = (1.0 / distance) * (1.0 / (abs(origin_gdp - dest_gdp) + eta))
+            local_edges.append((origin, dest, geo_econ_weight))
+        local_edges.sort(key=lambda item: item[2], reverse=True)
+        edges.extend(local_edges[:3])
+
+    undirected = {}
+    for origin, dest, weight in edges:
+        key = tuple(sorted([origin, dest]))
+        undirected[key] = max(undirected.get(key, 0.0), weight)
+    edge_df = pd.DataFrame(
+        [{"origin": key[0], "dest": key[1], "weight": weight} for key, weight in undirected.items()]
+    ).sort_values("weight", ascending=False)
+    edge_df = edge_df.head(34)
+
+    region_colors = {
+        "珠三角": NATURE_RED,
+        "粤东": "#F39B7F",
+        "粤西": "#4DBBD5",
+        "粤北": NATURE_BLUE,
+    }
+    ai_min = city_stats["ai_mean"].min()
+    ai_span = city_stats["ai_mean"].max() - ai_min
+    city_stats["node_size"] = 85 + 360 * (city_stats["ai_mean"] - ai_min) / ai_span
+    focus = {"广州市", "深圳市"}
+
+    fig, ax = plt.subplots(figsize=(8.4, 6.2))
+    ax.set_facecolor("white")
+    if not edge_df.empty:
+        weights = edge_df["weight"].to_numpy()
+        w_min = weights.min()
+        w_span = weights.max() - w_min if weights.max() > w_min else 1.0
+        for _, row in edge_df.iterrows():
+            o = city_lookup.loc[row["origin"]]
+            d = city_lookup.loc[row["dest"]]
+            strength = (float(row["weight"]) - w_min) / w_span
+            ax.plot(
+                [o["longitude"], d["longitude"]],
+                [o["latitude"], d["latitude"]],
+                color="#64748B",
+                linewidth=0.45 + 2.2 * strength,
+                alpha=0.25 + 0.42 * strength,
+                zorder=1,
+            )
+
+    for region, group in city_stats.groupby("region_group"):
+        ax.scatter(
+            group["longitude"],
+            group["latitude"],
+            s=group["node_size"],
+            color=region_colors.get(region, MUTED),
+            edgecolor="white",
+            linewidth=1.1,
+            alpha=0.92,
+            label=region,
+            zorder=3,
+        )
+
+    for city in focus:
+        if city not in city_lookup.index:
+            continue
+        row = city_lookup.loc[city]
+        ax.scatter(
+            row["longitude"],
+            row["latitude"],
+            s=560,
+            facecolor="none",
+            edgecolor="#111827",
+            linewidth=1.8,
+            zorder=4,
+        )
+
+    label_cities = {"广州市", "深圳市", "珠海市", "东莞市", "佛山市", "惠州市", "韶关市", "汕头市", "湛江市", "梅州市"}
+    offsets = {
+        "广州市": (-0.24, 0.18),
+        "深圳市": (0.18, -0.10),
+        "东莞市": (0.18, 0.08),
+        "佛山市": (-0.26, -0.10),
+        "珠海市": (-0.18, -0.16),
+        "惠州市": (0.18, 0.08),
+        "韶关市": (0.10, 0.12),
+        "汕头市": (0.16, -0.12),
+        "湛江市": (-0.08, 0.12),
+        "梅州市": (0.12, 0.10),
+    }
+    for _, row in city_stats.iterrows():
+        city = row["city_name"]
+        if city not in label_cities:
+            continue
+        dx, dy = offsets.get(city, (0.06, 0.06))
+        ax.text(
+            row["longitude"] + dx,
+            row["latitude"] + dy,
+            city.replace("市", ""),
+            ha="center",
+            va="center",
+            fontsize=9.2 if city in focus else 8.2,
+            color="#0F172A",
+            fontweight="bold" if city in focus else "normal",
+            bbox={"boxstyle": "round,pad=0.12", "facecolor": "white", "edgecolor": "none", "alpha": 0.82},
+            zorder=5,
+        )
+
+    ax.set_title("广东AI产业地理--经济空间关联网络", pad=14, color="#102A43", fontweight="bold")
+    ax.text(
+        0.015,
+        0.03,
+        "注：节点大小表示AI集聚均值，连线粗细表示地理距离与经济相似性嵌套后的相对联系强度。",
+        transform=ax.transAxes,
+        fontsize=8.3,
+        color="#475569",
+        ha="left",
+        va="bottom",
+        bbox={"boxstyle": "round,pad=0.26", "facecolor": "white", "edgecolor": "#E2E8F0", "alpha": 0.90},
+    )
+    ax.legend(
+        title="区域",
+        loc="upper left",
+        frameon=True,
+        facecolor="white",
+        edgecolor="#D9E2EC",
+        borderpad=0.75,
+        fontsize=8.7,
+        title_fontsize=9.0,
+    )
+    ax.set_xlim(city_stats["longitude"].min() - 0.40, city_stats["longitude"].max() + 0.55)
+    ax.set_ylim(city_stats["latitude"].min() - 0.28, city_stats["latitude"].max() + 0.28)
+    ax.set_xlabel("经度")
+    ax.set_ylabel("纬度")
+    ax.set_aspect("equal", adjustable="box")
     polish_axes(ax)
     save_figure(fig, out_path)
 
@@ -324,14 +512,26 @@ def plot_city_ai_support_bubble(panel: pd.DataFrame, out_path: Path) -> None:
     ax.text(ax.get_xlim()[1], innovation_median, "创新支撑中位数", ha="right", va="bottom", fontsize=8.8, color="#475569")
 
     label_cities = {"深圳市", "广州市", "珠海市", "东莞市", "韶关市", "湛江市", "汕头市"}
+    label_offsets = {
+        "深圳市": (7, -2),
+        "广州市": (7, 8),
+        "珠海市": (7, 8),
+        "东莞市": (7, -10),
+        "韶关市": (7, 8),
+        "湛江市": (-20, -10),
+        "汕头市": (8, -12),
+    }
     for _, row in city[city["city_name"].isin(label_cities)].iterrows():
+        dx, dy = label_offsets.get(row["city_name"], (5, 5))
         ax.annotate(
             row["city_name"].replace("市", ""),
             (row["ai"], row["innovation"]),
-            xytext=(5, 5),
+            xytext=(dx, dy),
             textcoords="offset points",
             fontsize=8.8,
             color="#102A43",
+            ha="right" if dx < 0 else "left",
+            bbox={"boxstyle": "round,pad=0.12", "facecolor": "white", "edgecolor": "none", "alpha": 0.82},
         )
 
     ax.set_xlabel("AI产业集聚代理指标均值")
@@ -634,6 +834,8 @@ def main() -> None:
     moran = pd.read_csv(ANALYSIS_DIR / "moran_global_results.csv", encoding="utf-8-sig")
     lisa = pd.read_csv(ANALYSIS_DIR / "lisa_local_results.csv", encoding="utf-8-sig")
     panel = pd.read_csv(ANALYSIS_DIR / "panel_21city_2018_2023_completed.csv", encoding="utf-8-sig")
+    coords = pd.read_csv(SPATIAL_DIR / "city_coordinates.csv", encoding="utf-8-sig")
+    weights_long = pd.read_csv(SPATIAL_DIR / "spatial_weights_inverse_distance_long.csv", encoding="utf-8-sig")
     regional = pd.read_csv(ANALYSIS_DIR / "regional_heterogeneity_summary.csv", encoding="utf-8-sig")
     report = pd.read_csv(ANALYSIS_DIR / "panel_21city_2018_2023_completion_report.csv", encoding="utf-8-sig")
     sdm = pd.read_csv(ANALYSIS_DIR / "sdm_ai_effects_summary.csv", encoding="utf-8-sig")
@@ -649,6 +851,7 @@ def main() -> None:
     )
     plot_lisa_scatter(lisa, PICTURE_DIR / "fig_lisa_ai_2023_scatter.png")
     plot_text_proxy_validation(panel, PICTURE_DIR / "fig_text_proxy_validation.png")
+    plot_spatial_network_topology(panel, coords, weights_long, PICTURE_DIR / "fig_spatial_network_topology.png")
     plot_city_ai_support_bubble(panel, PICTURE_DIR / "fig_city_ai_support_bubble.png")
     plot_region_multimetric_comparison(regional, PICTURE_DIR / "fig_region_multimetric_comparison.png")
     plot_innovation_weight_structure(report, PICTURE_DIR / "fig_innovation_weight_structure.png")
